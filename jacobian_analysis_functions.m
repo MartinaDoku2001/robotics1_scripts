@@ -2,6 +2,19 @@
 clear all
 clc
 
+syms q1 q2 q3 q4 real
+r=[q2*cos(q1)+q4*cos(q1+q3);
+q2*sin(q1)+q4*sin(q1+q3);
+q1+q3]
+variables=[q1, q2, q3, q4]
+J=jacobian(r)
+%jacobianAnalysis(J,variables)
+q2=0
+q3=0
+display(J')
+findNullspace(J')
+findRange(J')
+
 function [J, variables] = jacobianAnalysis(J, variables)
     %performs the full analysis of a Jacobian, square or not,
     %displaying: 
@@ -76,10 +89,10 @@ function [J, variables] = jacobianAnalysis(J, variables)
         
         % Display the nullspace of the Jacobian
         disp('Nullspace of the Jacobian:');
-        disp(nullspace_J);
+        disp(simplify(nullspace_J));
 
         % Compute the range of the jacobian
-        Range = orth(sym(J));
+        Range = simplify(orth(sym(J)));
 
         % Display the range
         disp('range of the jacobian');
@@ -156,9 +169,9 @@ function [J] = findNullspace(J)
         % Compute the nullspace of the Jacobian
         nullspace_J = null(J);
 
-        % Display the rank of the Jacobian
-        disp('Rank of the Jacobian:');
-        disp(rank_J);
+        % Display the nullspace of the Jacobian
+        disp('Nullspace of the Jacobian:');
+        disp(nullspace_J);
 end
 
 function [J] = findRange(J)
