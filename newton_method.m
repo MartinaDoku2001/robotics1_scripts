@@ -2,15 +2,18 @@ function [q_out, guesses, cartesian_errors] = newton_method(q_in, desired_point,
 % [q_out, guesses, cartesian_errors] = newton(q_in, desired_point, f_r, 
 %  initial_guess, max_iterations, max_cartesian_error, min_joint_increment, 
 %  max_closeness_singularity) takes as inputs:
-%   -q_in: The variables of the joints, e.g. [q1 q2 q3 q4]
-%   -desired_point: the configuration we wish to reach
-%   -f_r: The mapping from joints to points
-%   -initial_guess: Initial configuration of joints
-%   -max_iterations: The maximum number of iterations we can perform
-%   -max_cartesian_error: The level of precision we wish to reach
+%   -q_in: The variables of the joints, e.g. [q1 ;q2; q3 ;q4]
+%   -desired_point: the configuration we wish to reach [px; py; pz]
+%   -f_r: The mapping from joints to points 
+%   -initial_guess: Initial configuration of joints [qx; qy; qz]
+%   -max_iterations: The maximum number of iterations we can perform (if in
+%   doubt put high number)
+%   -max_cartesian_error: The level of precision we wish to reach (if not
+%   specified put 0.00000001)
 %   -min_joint_increment: The minimum level of increment of accuracy 
 %                          between successive iterations.
-%   -max_closeness_singularity: How close to a singularity we can get
+%   -max_closeness_singularity: How close to a singularity we can get (if
+%   not specified 0.000001)
 % and outputs:
 %   -q_out: The best reached configuration
 %   -guesses: The history of tested configurations
@@ -69,7 +72,7 @@ function [q_out, guesses, cartesian_errors] = newton_method(q_in, desired_point,
         guess = eval(new_guess);
     end
     
-    guesses = guesses(1:i, :);
+    guesses = guesses(1:i, :)
     cartesian_errors = cartesian_errors(1:i);
     q_out = guess;
 end

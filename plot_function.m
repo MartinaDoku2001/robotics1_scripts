@@ -32,6 +32,5 @@ function[] = plot_function(f,x_i,x_f,rate)
     ylabel('f(x)');
 
     %MODIFICA LA GRANDEZZA DEL PLOT A PIACIMENTO
-    ylim([-1, 2]);
-    ylim([-1, 4]);
+    %ylim([-1, 2]);
     grid on;
