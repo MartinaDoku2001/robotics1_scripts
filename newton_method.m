@@ -4,7 +4,7 @@ function [q_out, guesses, cartesian_errors] = newton_method(q_in, desired_point,
 %  max_closeness_singularity) takes as inputs:
 %   -q_in: The variables of the joints, e.g. [q1 ;q2; q3 ;q4]
 %   -desired_point: the configuration we wish to reach [px; py; pz]
-%   -f_r: The mapping from joints to points 
+%   -f_r: The mapping from joints to points f(q)
 %   -initial_guess: Initial configuration of joints [qx; qy; qz]
 %   -max_iterations: The maximum number of iterations we can perform (if in
 %   doubt put high number)

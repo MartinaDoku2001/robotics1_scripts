@@ -1,4 +1,4 @@
-function [] = DH_to_Ja(DHTABLE, prismatic_indices)
+function [Ja] = DH_to_Ja(DHTABLE, prismatic_indices)
     %Function that find the angular jacobian for a robot 
     %
     %parameters:

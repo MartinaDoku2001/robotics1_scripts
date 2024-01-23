@@ -1,4 +1,4 @@
-function [J, variables] = find_singularity(J, variables)
+function [] = find_singularity(J, variables)
     %Function that computes the singularity of ajacobian matrix square or
     %not
     %
@@ -48,7 +48,6 @@ function [J, variables] = find_singularity(J, variables)
             end
             disp('All possible solutions for the symbols that make the determinant zero:');
             display(solutions);
-            display(cond);
             
         end
 end
