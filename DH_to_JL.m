@@ -20,11 +20,7 @@ function [JL] = DH_to_JL(DHTABLE,variables)
     A = cell(1, N);
 
     for i = 1:N
-        alpha_ = DHTABLE(i, 1);
-        a = DHTABLE(i, 2);
-        d = DHTABLE(i, 3);
-        theta_ = DHTABLE(i, 4);
-        A{i} = subs(TDH);
+        A{i} = subs(TDH, [alpha_, a, d, theta_], DHTABLE(i, :));
     end
 
     T = eye(4);
@@ -35,22 +31,13 @@ function [JL] = DH_to_JL(DHTABLE,variables)
         position_0_to_i{i} = T(1:3,4);
     end
 
-    % Initialize the Jacobian matrix as symbolic
-    JL = sym(zeros(3, N));
-
-    % Unit vector along the z-axis
-    z = [0; 0; 0];
-    zi=[0;0;1];
-    JL(:, N) = z;
     p_0_e=position_0_to_i{N};
     % Compute the column vectors for the Jacobian matrix
-    for i = 1:N
-        JL(:, i) =simplify(jacobian(p_0_e,(variables(i))));
-    end
-
+    
+    JL = simplify(jacobian(p_0_e, variables));
 
     % Display or return the Jacobian matrix as needed
-    disp('Linear Jacobian Matrix:');
+    disp('Linear Jacobian Matrix: ');
     disp(JL);
 end
 
