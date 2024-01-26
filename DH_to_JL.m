@@ -44,7 +44,7 @@ function [JL] = DH_to_JL(DHTABLE,variables)
     JL(:, N) = z;
     p_0_e=position_0_to_i{N};
     % Compute the column vectors for the Jacobian matrix
-    for i = 1:N-1
+    for i = 1:N
         JL(:, i) =simplify(jacobian(p_0_e,(variables(i))));
     end
 

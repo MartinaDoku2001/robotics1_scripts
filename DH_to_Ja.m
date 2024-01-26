@@ -52,7 +52,7 @@ function [Ja] = DH_to_Ja(DHTABLE, prismatic_indices)
     % Substitute columns with zeros for prismatic joints
     for prismatic_index = prismatic_indices
         if prismatic_index ~= N
-            Ja(:, prismatic_index+1) = zeros(3, 1);
+            Ja(:, prismatic_index) = zeros(3, 1);
         end
     end
 
