@@ -1,4 +1,4 @@
-function [] = find_singularity(J, variables)
+function [solutions] = find_singularity(J, variables)
     %Function that computes the singularity of ajacobian matrix square or
     %not
     %
