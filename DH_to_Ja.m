@@ -20,12 +20,9 @@ function [Ja] = DH_to_Ja(DHTABLE, prismatic_indices)
 
     A = cell(1, N);
 
+    
     for i = 1:N
-        alpha_ = DHTABLE(i, 1);
-        a = DHTABLE(i, 2);
-        d = DHTABLE(i, 3);
-        theta_ = DHTABLE(i, 4);
-        A{i} = subs(TDH);
+        A{i} = subs(TDH, [alpha_, a, d, theta_], DHTABLE(i, :));
     end
 
     T = eye(4);

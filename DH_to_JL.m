@@ -32,8 +32,8 @@ function [JL] = DH_to_JL(DHTABLE,variables)
     end
 
     p_0_e=position_0_to_i{N};
-    % Compute the column vectors for the Jacobian matrix
     
+    % compute the jacobian in one shot
     JL = simplify(jacobian(p_0_e, variables));
 
     % Display or return the Jacobian matrix as needed
