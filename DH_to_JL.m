@@ -8,6 +8,8 @@ function [JL] = DH_to_JL(DHTABLE,variables)
     %               pi/2    0          q3       0;
     %               0      sym('a4')    0       q4];
     %
+    %-variables: array containing the joint variables(i.e.: [q1,...,qn], where n is the number of the last joint). 
+    %   Leave them as literals even if in the DH you defined the numerical value
     syms alpha_ d a theta_
 
     N = size(DHTABLE, 1);
