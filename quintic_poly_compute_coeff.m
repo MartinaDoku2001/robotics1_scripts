@@ -6,7 +6,7 @@ function [a, b, c, d, e, f] = quintic_poly_compute_coeff(qin_, qfin_, vin_, vfin
     syms vin vfin real
     syms ain afin real
     syms T real positive
-    
+    digits(5)
     q_tau = a*tau^5 + b*tau^4 + c*tau^3 + d*tau^2 + e*tau + f
     
     if print_info
@@ -68,7 +68,7 @@ function [a, b, c, d, e, f] = quintic_poly_compute_coeff(qin_, qfin_, vin_, vfin
     e = double(subs(e))
     f = double(subs(f))
 
-    q_tau=subs(q_tau)
+    q_tau=vpa(subs(q_tau))
 
 end
   
