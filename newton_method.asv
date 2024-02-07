@@ -45,19 +45,19 @@ function [q_out, guesses, cartesian_errors] = newton_method(q_in, desired_point,
         error = norm(desired_point - subs(f_r, q_in, guess));
         cartesian_errors(i) = error;
         if error < max_cartesian_error
-            fprintf("Finshed at iteration %d because the error was lower than the specified amount.\n", i-1);
+            fprintf("Finshed at iteration %d because the error was lower than the specified amount.\n", i);
             break
         end
         
         if simple_case
             if abs(det(subs(J, q_in, guess))) <= max_closeness_singularity
-                fprintf("Finished at iteration %d because too close to a singularity.\n", i-1);
+                fprintf("Finished at iteration %d because too close to a singularity.\n", i);
                 break
             end
         else
             [~, D, ~] = svd(subs(J, q_in, guess));
             if min(min(D)) >= D(1, 1) - max_closeness_singularity
-                fprintf("Finished at iteration %d because too close to a singularity.\n", i-1);
+                fprintf("Finished at iteration %d because too close to a singularity.\n", i);
                 break
             end
         end
@@ -71,11 +71,8 @@ function [q_out, guesses, cartesian_errors] = newton_method(q_in, desired_point,
         
         guess = eval(new_guess);
     end
-    guesses = guesses(1:i, :)
     for m= 0:i-1
-        fprintf("guess %d: \n", m)
-        display( guesses(m+1,:))
-    end
+    guesses = guesses(1:i, :)
     cartesian_errors = cartesian_errors(1:i);
     display("Cartesian errors")
     display(cartesian_errors)

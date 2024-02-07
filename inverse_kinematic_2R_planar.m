@@ -1,4 +1,4 @@
-function [q1,q2] = inverse_kinematic_2R_planar(l1,l2,px,py,pos_neg)
+function [angles] = inverse_kinematic_2R_planar(l1,l2,px,py,pos_neg)
     %Function that returns the value of the angles q1 and q2 
     %of a 2R planar robot
     %
@@ -32,4 +32,5 @@ function [q1,q2] = inverse_kinematic_2R_planar(l1,l2,px,py,pos_neg)
     
     %compute the value of q2
     q1 = atan2(py, px) - atan2(l2 * s2, l1 + l2 * c2);
+    angles=[q1,q2];
 end
