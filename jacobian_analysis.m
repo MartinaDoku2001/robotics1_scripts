@@ -17,20 +17,49 @@ function [J, variables] = jacobian_analysis(J, variables)
     % Check if the jacobian is squared
     [m, n] = size(J);
     if m ~= n
-        for i = 1:n
-            % Create a submatrix of the original non-square matrix by
-            % Removing one column at a time
-            Jcopy=J;
-            Jcopy(:,i)=[];
+            if m < n 
+                for i = 1:n
+                    % Create a submatrix of the original non-square matrix by
+                    % removing one column at a time
+                    Jcopy=J;
+                    Jcopy(:,i)=[];
+        
+                    % Determinant of the i-th submatrix
+                    fprintf('Determinant of the %s -th submatrix: \n', mat2str(i));
+                    disp(simplify(det(Jcopy)));
+        
+                    % Compute the singularity (equal the determinant to zero)
+                    fprintf('singularity condition of the %s -th submatrix: \n', mat2str(i));
+                    disp(simplify(det(Jcopy)==0));
+                end
+            else 
+                %create all submatrix generated from removing any m-n rows
 
-            % Determinant of the i-th submatrix
-            fprintf('Determinant of the %s -th submatrix: \n', mat2str(i));
-            disp(simplify(det(Jcopy)));
-
-            % Compute the singularity (equal the determinant to zero)
-            fprintf('singularity condition of the %s -th submatrix: \n', mat2str(i));
-            disp(simplify(det(Jcopy)==0));
-        end
+                %case of Jacobian 6*4
+                if m==6 & n==4
+                    %create the sumatrices by creating all the 4by4
+                    %submatrices
+                    k=0;
+                    for i = 1:m
+                        % Create a submatrix of the original non-square matrix by
+                        % removing one column at a time
+                        Jcopy=J;
+                        Jcopy(i,:)=[];
+                        for j=1:m-1
+                            k=k+1;
+                            Jcopy2=Jcopy;
+                            Jcopy2(j,:)=[];
+                            % Determinant of the i-th submatrix
+                            fprintf('Determinant of the %s -th submatrix: \n', mat2str(k));
+                            disp(simplify(det(Jcopy2)));
+                
+                            
+                        end
+                    end
+                else
+                    disp('The jabian you have parsed has more rows than columns and its not a geometric jacobian')
+                end
+            end
     else
         % Compute the determinant
         determinant_Jacobian = simplify(det(J));
