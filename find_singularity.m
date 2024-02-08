@@ -56,10 +56,6 @@ function [solutions] = find_singularity(J, variables)
     
             disp('Determinant of the Jacobian:');
             disp(simplify(determinant_Jacobian));
-        
-            % Compute the singularity (equal the determinant to zero)
-            fprintf('singularity condition: \n');
-            disp(determinant_Jacobian==0);
     
     
             

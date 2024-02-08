@@ -1,5 +1,5 @@
 
-function [a, b, c, d, e, f] = quintic_poly_compute_coeff(qin_, qfin_, vin_, vfin_, ain_, afin_, T_, print_info)
+function [q_tau] = quintic_poly_compute_coeff(qin_, qfin_, vin_, vfin_, ain_, afin_, T_, print_info)
     syms tau real
     syms a b c d e f real
     syms qin qfin real
