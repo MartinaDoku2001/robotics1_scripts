@@ -1,4 +1,4 @@
-function [a, b, c, d, e, f] = cubic_poly_double_norm_compute_coeff(qin_, qfin_, vin_, vfin_, T_, print_info)
+function [qn] = cubic_poly_double_norm_compute_coeff(qin_, qfin_, vin_, vfin_, T_, print_info)
     syms tau real
     syms a b c d real
     syms qin qfin real
@@ -70,4 +70,5 @@ function [a, b, c, d, e, f] = cubic_poly_double_norm_compute_coeff(qin_, qfin_, 
         display(d)
         fprintf("##############################################################\n");
     end
+    qn=subs(qn)
 end
