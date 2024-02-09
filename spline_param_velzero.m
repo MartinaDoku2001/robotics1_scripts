@@ -4,7 +4,7 @@ function[V1,V2,V3,V4,A1,A2,A3,A4,A,b] = spline_param_velzero(tvals,qvals)
 %in questo caso abbiamo deciso di printare come output i valori della velocità e dell'accelerazione e il plot della spline, ma si possono modificare in base a necessità
     %INPUT:
         %tvals = [1 2 2.5 4];
-        %qvals = [45 90 -45 45];
+        %qvals = [45 90 -45 45]; in gradi NO radianti
 
     %OUTPUT: -> modificare il numero di Vi e Ai se sono definiti meno intervalli nel testo
         %V1, V2, V3, V4 = velocità knots
