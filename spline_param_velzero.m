@@ -1,14 +1,14 @@
 function[V1,V2,V3,V4,A1,A2,A3,A4,A,b] = spline_param_velzero(tvals,qvals)
 
-%funzione che trova i valori dell'accelerazione e della velocità massima dati dai valori tvals e qvals
+%funzione che trova i valori dell'accelerazione e della velocità ai knots dati dai valori tvals e qvals
 %in questo caso abbiamo deciso di printare come output i valori della velocità e dell'accelerazione e il plot della spline, ma si possono modificare in base a necessità
     %INPUT:
         %tvals = [1 2 2.5 4];
         %qvals = [45 90 -45 45];
 
     %OUTPUT: -> modificare il numero di Vi e Ai se sono definiti meno intervalli nel testo
-        %V1, V2, V3, V4 = velocità massime
-        %A1, A2, A3, A4 = accelerazioni massime
+        %V1, V2, V3, V4 = velocità knots
+        %A1, A2, A3, A4 = accelerazioni knots
 
 
 %% spline plot in case we have initial and final velocity are zero
