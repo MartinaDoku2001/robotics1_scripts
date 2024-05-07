@@ -1,4 +1,4 @@
-function [w, v, vc, T] = moving_frames_algorithm(num_joints, DH, qdots, m, r, rc, prismatic_indices)
+function [w, v, vc, T] = moving_frames_algorithm(num_joints, DH, qdots, m, r, rc, prismatic_indices,I)
     % This function performs the moving frame algorithm and returns the
     % vectors w, v, vc, and the values of T for each joint
     %
@@ -55,9 +55,15 @@ function [w, v, vc, T] = moving_frames_algorithm(num_joints, DH, qdots, m, r, rc
     vc = zeros(3, num_joints);
     T = cell(num_joints);
     
-    I=[Ixx,0,0;0,Iyy,0;0,0,Izz]
+    
     %Start the loop
     for i = 1:num_joints
+        if i==1
+            In=I(1:3,1:3)
+        else
+            In=I(1:3,4:6)
+        end
+        
         if ismember(i, prismatic_indices)
             sigma = 1;
         else
@@ -73,7 +79,7 @@ function [w, v, vc, T] = moving_frames_algorithm(num_joints, DH, qdots, m, r, rc
             w_prev= wi
         end
         
-        wi=R'*(w_prev + (1- sigma)*[0;0;qdots(i)]);
+        wi=simplify(R'*(w_prev + (1- sigma)*[0;0;qdots(i)]));
         fprintf('the value of w_%d is:',i);
         disp(wi);
         
@@ -94,7 +100,7 @@ function [w, v, vc, T] = moving_frames_algorithm(num_joints, DH, qdots, m, r, rc
         disp(vci)
 
         %computing T
-        Ti=simplify(0.5*m(i)*(vci'*vci)+0.5*wi'*I*wi);
+        Ti=simplify(0.5*m(i)*(vci'*vci)+0.5*wi'*In*wi);
         fprintf('The value of T_%d is:', i);
         disp(Ti)
         T{i}=Ti;
