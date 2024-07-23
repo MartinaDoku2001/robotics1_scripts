@@ -1,4 +1,4 @@
-function Rmatrix = ElementaryRotationM(axis, angle)
+function Rmatrix = ElementaryRotations(axis, angle)
     % Function that returns the elementary rotation matrix for a given axis and angle
     %
     % Parameters:
