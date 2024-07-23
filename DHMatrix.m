@@ -1,31 +1,18 @@
-function [T, A] = DHMatrix(DHTABLE)
-% Function that takes the DHTABLE and returns T 
-% 
-% parameters: 
-%   -DHTABLE: a n-vector of vectors in the order: [alpha a d theta]
-% and outputs:
-%   -T: the product of all the matrices corresponding to each vector of
-%   the DHTABLE 
-%
-% example
-%
+function matrix = DHMatrix()
+    % Function that returns the DH matrix for a robot
+    % For usage, simply define the DH Matrix as:
+    % DH = DHmatrix();
+    %
+    % Then, after defining your "DH_table", you can substitute the values
+    % using the following command:
+    % for i = 1 : n_joints
+    %     A{i} = subs(DH, {alpha, a, d, theta}, DH_table(i, :));
+    % end
 
-    T = eye(4);
-    nums = size(DHTABLE);
-    
-    A = cell(1,nums(1));
-    
-    for i = 1:nums(1)
-        line = DHTABLE(i, :);
-        R = [cos(line(4)) -cos(line(1))*sin(line(4)) sin(line(1))*sin(line(4)) line(2)*cos(line(4));
-             sin(line(4)) cos(line(1))*cos(line(4)) -sin(line(1))*cos(line(4)) line(2)*sin(line(4));
-             0 sin(line(1)) cos(line(1)) line(3);
-             0 0 0 1;];
-        A{i} = R;
-        T = T * R;   
-    end
+    syms alpha a d theta;
 
-    if isa(T, 'sym')
-        T = simplify(T);
-    end
+    matrix = [cos(theta) -cos(alpha)*sin(theta) sin(alpha)*sin(theta) a*cos(theta);
+            sin(theta) cos(alpha)*cos(theta) -sin(alpha)*cos(theta) a*sin(theta);
+            0 sin(alpha) cos(alpha) d;
+            0 0 0 1];
 end

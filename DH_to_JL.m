@@ -1,4 +1,4 @@
-function [JL] = DH_to_JL(DHTABLE,variables)
+function [JL] = DH_to_JL(DHTABLE, variables)
     %Function that find the linear jacobian for a robot 
     %
     %parameters:
@@ -10,19 +10,19 @@ function [JL] = DH_to_JL(DHTABLE,variables)
     %
     %-variables: array containing the joint variables(i.e.: [q1,...,qn], where n is the number of the last joint). 
     %   Leave them as literals even if in the DH you defined the numerical value
-    syms alpha_ d a theta_
+    syms alpha_ d a_ theta_
 
     N = size(DHTABLE, 1);
 
-    TDH = [cos(theta_) -sin(theta_)*cos(alpha_) sin(theta_)*sin(alpha_) a*cos(theta_);
-           sin(theta_) cos(theta_)*cos(alpha_) -cos(theta_)*sin(alpha_) a*sin(theta_);
+    TDH = [cos(theta_) -sin(theta_)*cos(alpha_) sin(theta_)*sin(alpha_) a_*cos(theta_);
+           sin(theta_) cos(theta_)*cos(alpha_) -cos(theta_)*sin(alpha_) a_*sin(theta_);
            0 sin(alpha_) cos(alpha_) d;
            0 0 0 1];
 
     A = cell(1, N);
 
     for i = 1:N
-        A{i} = subs(TDH, [alpha_, a, d, theta_], DHTABLE(i, :));
+        A{i} = subs(TDH, [alpha_, a_, d, theta_], DHTABLE(i, :));
     end
 
     T = eye(4);
@@ -42,4 +42,3 @@ function [JL] = DH_to_JL(DHTABLE,variables)
     disp('Linear Jacobian Matrix: ');
     disp(JL);
 end
-

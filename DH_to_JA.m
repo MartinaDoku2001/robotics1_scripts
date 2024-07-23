@@ -1,4 +1,4 @@
-function [Ja] = DH_to_Ja(DHTABLE, prismatic_indices)
+function [Ja] = DH_to_JA(DHTABLE, prismatic_indices)
     %Function that find the angular jacobian for a robot 
     %
     %parameters:
@@ -9,12 +9,12 @@ function [Ja] = DH_to_Ja(DHTABLE, prismatic_indices)
     %               0      sym('a4')    0       q4];
     %-prismatic_indices: a list of indices of prismatic Joints ex: [2,4]
     %   if there is no prismatic joint put []
-    syms alpha_ d a theta_
+    syms alpha_ d a_ theta_
 
     N = size(DHTABLE, 1);
 
-    TDH = [cos(theta_) -sin(theta_)*cos(alpha_) sin(theta_)*sin(alpha_) a*cos(theta_);
-           sin(theta_) cos(theta_)*cos(alpha_) -cos(theta_)*sin(alpha_) a*sin(theta_);
+    TDH = [cos(theta_) -sin(theta_)*cos(alpha_) sin(theta_)*sin(alpha_) a_*cos(theta_);
+           sin(theta_) cos(theta_)*cos(alpha_) -cos(theta_)*sin(alpha_) a_*sin(theta_);
            0 sin(alpha_) cos(alpha_) d;
            0 0 0 1];
 
@@ -22,7 +22,7 @@ function [Ja] = DH_to_Ja(DHTABLE, prismatic_indices)
 
     
     for i = 1:N
-        A{i} = subs(TDH, [alpha_, a, d, theta_], DHTABLE(i, :));
+        A{i} = subs(TDH, [alpha_, a_, d, theta_], DHTABLE(i, :));
     end
 
     T = eye(4);
