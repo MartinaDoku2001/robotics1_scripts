@@ -11,10 +11,10 @@ Welcome to the Robotics Exam MATLAB Scripts repository! This collection of MATLA
 ## Getting Started
 
 1. Clone the repository to your local machine:
-   git clone https://github.com/your-username/robotics-exam-matlab-scripts.git
+   git clone https://github.com/your-username/&lt;YourRoboticsFork&gt;.git
    
 2. Navigate to the project directory:
-  cd robotics-exam-matlab-scripts
+  cd &lt;YourRoboticsFork&gt;
 
 3. Open MATLAB and run the scripts based on your specific needs
 
