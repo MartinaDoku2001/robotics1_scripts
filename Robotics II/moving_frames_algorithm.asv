@@ -9,8 +9,6 @@ function [w, v, vc, T] = moving_frames_algorithm(num_joints, DH, qdots, m, r, rc
     %
     % qdts = a vector containing qdots ex: [qd1; qd2; qd3]
     %
-    % m = a vector of masses [m1 ; ... ; mn]
-    %
     % r = a vector containing the values ^ir_{i-1,i} that is the distance
     % between frame i-1 and i computed with respect to frame i 
     %
@@ -20,7 +18,6 @@ function [w, v, vc, T] = moving_frames_algorithm(num_joints, DH, qdots, m, r, rc
     % prismatic indices= a list containing the list of prismatic indices,
     % ex for a PPR= [1,2]
     %
-    % I = a vector of 3 by 3 matrices [I1,..,In]
     %
     %output:
 
@@ -61,7 +58,7 @@ function [w, v, vc, T] = moving_frames_algorithm(num_joints, DH, qdots, m, r, rc
     
     %Start the loop
     for i = 1:num_joints
-        In=I(1:3,(i-1)*3+1:i*3)
+        In=I(1:3,i*(3:i*3)
       
         
         if ismember(i, prismatic_indices)
