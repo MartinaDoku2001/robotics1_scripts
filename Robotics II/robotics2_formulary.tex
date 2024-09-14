@@ -1,0 +1,2724 @@
+
+\documentclass[a4paper,12pt]{article}
+
+% Pacchetti di base
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{enumitem}
+
+% Margini del documento
+\geometry{left=2.5cm, right=2.5cm, top=3cm, bottom=3cm}
+
+% Impostazioni del header e footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\leftmark}
+\fancyhead[R]{\thepage}
+
+% Definizione della copertina
+\title{
+    \Huge{Robotics 2}\\
+    \large{Artificial Intelligence and Robotics}\\
+    \vspace{1cm}
+    \includegraphics[width=0.4\textwidth]{logo.png}
+}
+\author{Martina Doku}
+
+
+% Formattazione dei titoli delle sezioni
+\titleformat{\section}{\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection}{1em}{}
+
+% Formattazione dell'indice
+\renewcommand{\cftsecfont}{\bfseries}
+\renewcommand{\cftsubsecfont}{\itshape}
+\renewcommand{\cftsubsubsecfont}{\small}
+
+\begin{document}
+
+% Copertina
+\maketitle
+\newpage
+
+% Indice
+\tableofcontents
+\newpage
+
+\section{Calibration}
+\textbf{Calibration goal}:  recover as 
+much as possible pose
+errors by correcting the nominal \ref{glossary:nominal condition}
+set of D-H parameters,
+based on independent external measurements
+\subsection{Error measure}
+The error measure is the difference between the true value $r$ and the
+ measured value $r_{nom}$. It is given by:
+\begin{equation}
+  \Delta r = r - r_{nom} = \frac{\partial f}{\partial \alpha} \Delta \alpha + \frac{\partial f}{\partial a} \Delta a + \frac{\partial f}{\partial d} \Delta d + \frac{\partial f}{\partial \theta} \Delta \theta
+\end{equation}
+where $\frac{\partial f}{\partial \alpha}$, $\frac{\partial f}{\partial a}$, $\frac{\partial f}{\partial d}$, $\frac{\partial f}{\partial \theta}$ are the partial 
+jacobians evaluated in nominal conditions
+\subsection{Calibration Equation}
+The calibration equation is given by:
+\begin{equation}
+    \Delta \psi = \begin{bmatrix}
+        \Delta \alpha \\
+        \Delta a \\
+        \Delta d \\
+        \Delta \theta
+    \end{bmatrix}
+\end{equation}
+\begin{equation}
+    \phi= \begin{bmatrix}
+     \frac{\partial f}{\partial \alpha} & \frac{\partial f}{\partial a} & \frac{\partial f}{\partial d} & \frac{\partial f}{\partial \theta}
+    \end{bmatrix}
+\end{equation}
+\begin{equation}
+    \Delta r= \phi \cdot \Delta \psi
+\end{equation}
+\textbf{Note:} If we have more uknows than equations, we need to perform 
+l experiments to solve the calibration equation. Thus we obtain:
+\begin{equation}
+    \Delta \bar{r}= \bar{\phi} \cdot \Delta \psi
+\end{equation}
+where $\Delta \bar{r}$ is the average error 
+and $\bar{\phi}$ is the regressor matrix evaluated at nominal values,
+and $\Delta \psi$ is the unknowns.
+\subsection{Calibration Algorithm}
+The calibration algorithm is performed using the following steps:
+\begin{enumerate}
+    \item $\Delta \bar{r}= \bar{\phi} \cdot \Delta \psi$
+    \item $\Delta \psi = \bar{\phi}^\# \Delta\bar{r}= (\bar{\phi}^T \cdot \bar{\phi})^{-1} \cdot \bar{\phi}^T \cdot \Delta \bar{r}$
+    \item $ \psi_{nom} + \Delta \psi = \psi ' $
+    \item $ \Delta \bar{r}' = \bar{\phi}' \cdot \Delta \psi$ where $\bar{\phi}'$ is the regressor
+     matrix evaluated at the new values.
+    \item repeat from step 2
+\end{enumerate}
+\textbf{Note:} we use the pseudo-inverse to solve the calibration equation,
+it returns the minimum norm solution in case of underdetermined system,
+the minimum error solution in case of overdetermined system.
+\subsubsection{ex: write regressor matrix from a dh table}
+The first step is to obtain the position vector from the DH table.
+Then, for each component (a, $\alpha$, d, $\theta$) that we are interested in, we
+build the jacobian $ \frac{\partial f}{\partial \alpha} $... .
+The regressor equation is then given by:
+\begin{equation}
+    \Delta p = J_a \Delta a + J_{\alpha} \Delta \alpha + J_d \Delta d + J_{\theta} \Delta \theta= \Phi \Delta \phi
+\end{equation}
+with:
+\begin{equation}
+    \Phi = \begin{bmatrix}
+        J_a & J_{\alpha} & J_d & J_{\theta}
+    \end{bmatrix}
+\end{equation}
+\textbf{Note:} if we are interested ony in the fine tuning of some parameters, we can
+exclude the others from all the equations.
+\subsubsection{ex: find optimal link length from positions and joints}
+The steps are the following:
+\begin{enumerate}
+    \item Compute the position vector from the forward kinematics on the given 
+    joint measures and expected link lengths (if given)
+    \item Check if the position vector is the same as the one
+     measured, if not go to step 3
+    \item rewrite the position vector as a function of the link 
+    lengths:\\ 
+    $\Delta p = p - p_{nom} = \phi(q) \Delta l$ \\
+    $\Delta p = \begin{bmatrix}
+        \Delta p_a\\
+        \Delta p_b \\
+        \Delta p_c \\ \Delta p_d
+    \end{bmatrix} =
+    \begin{bmatrix}
+        \phi (q_a)\\
+         \phi(q_b) \\
+          \phi(q_c) \\ \phi(q_d)
+    \end{bmatrix} \Delta l$ 
+    \textbf{Note:} $\Delta p_a$ and co. are vertical vectors, they must 
+    be stacked vertically (if i have 3 measures in 2 dim, i obtain a 6x1 vector)
+    \item where a,b,c,d are the different joint measures 
+    \item solve the calibration equation for l as: $\Delta l =  \Phi^{\#} \Delta p$
+\end{enumerate}
+\subsubsection{ex: Theoretical question}
+\textbf{Question}: When is it convenient to use a two steps calibration?\\
+\textbf{Answer}: It is convinient to use a two steps calibration when it is expected
+ that the DH parameters will have very different uncertainty ranges. \\
+ The first step is performed only on high uncertainty parameters, the second on al of them.
+ This improves the accuracy of the pseudoinverseof the regressor matrix
+
+\section{Inverse Kinematics with Redundancy}
+Types of redundancy:
+\begin{itemize}
+    \item \textbf{kinematic redundancy}: the robot has more degrees of freedom than needed
+    \item \textbf{components redundancy}: the robot has more
+     components than needed
+     \item \textbf{control redundancy}: the robot is redundant in its supervision
+     architecture
+\end{itemize}
+    The resolution of redundancy can be done using two methods:
+\begin{enumerate}
+    \item \textbf{Local methods}: the local methods are online methods
+     that are used to solve the redundancy problem. They are a Linear Quadratic problems.
+     (discrete approach)
+    \item \textbf{Global methods}: the global methods are offline methods.
+     They are used to solve the redundancy problem. They are a
+      non-linear problem.
+\end{enumerate}
+\subsection{Which method to choose?}
+If the exercise asks for the solution that:
+\begin{itemize}
+    \item \textbf{minimizes the kinetic energy}: use the weighted pseudo-inverse with the inertia matrix as weight
+    \item \textbf{minimizes the torque norm (or task error norn)}: use the pseudo-inverse
+    \item \textbf{minimize norm of joint velocities}: use the pseudo-inverse
+    \item \textbf{minimizes the error on the higher priority task}: use the task priority (recursive) method
+    \item \textbf{minimizes the error on the lower priority task while correctly executing the higher priority one}: use the nullspace method or task priority (recursive) method (
+        the second is better if you have more than 2 tasks
+    )
+    \item \textbf{minimizes the acceleration norm}: use the nullspace method as in \ref{sec:Resolution at acceleration level}
+\end{itemize}
+\textbf{Note:} if asked to find another solution without 
+specific requirements, it is usually a solution that you can 
+infer by looking
+at the jacobian and the desired velocity, without 
+the need of any specific method.
+\subsection{Local methods}
+The three kinds of local methods are:
+\begin{enumerate}
+    \item \textbf{Jacobian-based methods}: among the infinite solutions,
+     one is chosen, e.g., that minimizes a
+    suitable (possibly weighted) norm.The problem of this method is that it 
+    might encounter singularities and it can lead to non repeatable position 
+    in joint space.
+    \item \textbf{Null-space methds}: a term is added to the previous 
+    solution so as not to affect execution of the task trajectory
+    \item \textbf{Task-augmentation methods}: redundancy is 
+    reduced/eliminated by adding $S \leq N - M$ additional tasks
+\end{enumerate}
+\subsection{Jacobian-based methods}
+The Jacobian-based methods are used to solve the redundancy problem.
+They give a solution in the form: \begin{equation}
+    \dot{q} = K(q) \cdot \dot{r}
+\end{equation}
+where K is a generalized inverse of the Jacobian matrix. Possible 
+choises for K are:
+\begin{itemize}
+    \item Pseudo-inverse \ref{sec:Pseudo-inverse}
+    \item Weighted pseudo-inverse \ref{sec:Pseudo-inverse}
+    \item Damped Least Square pseudo-inverse \ref{sec:Damped Least Square pseudo-inverse}:
+     this method is used to avoid singularities.
+\end{itemize}
+    \subsubsection{Pseudo-inverse}\label{sec:Pseudo-inverse}
+If J is full rank, the pseudo-inverse is given by:
+\begin{equation}
+    J^\# = J^T(J^T J)^{-1} 
+\end{equation}
+If J is not full rank, the pseudo-inverse it 
+is computed by using the SVD decomposition (or pinv in Matlab).\\
+\textbf{Note:} the pseudo-inverse is not unit independent.
+\subsubsection{Weighted pseudo-inverse}\label{sec:Weighted pseudo-inverse}
+The weighted pseudo-inverse is given by:
+\begin{equation}
+    J^\# = W^{-1} J^T(J W^{-1} J^T)^{-1}
+\end{equation}
+where larger weights are given to the most important tasks, usally 
+the weights are proportional to the inverse of the joint ranges.\\
+\textbf{Note:} it is NOT a pseudoinverse but it shares some properties \ref{sec:Pseudo-inverse properties}.\\
+\textbf{Note:} to find the velocity that \textbf{minimizes the Kinetic energy}, we have to
+use the weighted pseudo-inverse wit the \textbf{inertia matrix} as weight.
+
+\subsubsection{Damped Least Square pseudo-inverse}\label{sec:Damped Least Square pseudo-inverse}
+The damped least square pseudo-inverse is given by:
+\begin{equation}
+    J^\# = J^T(J J^T + \mu^2 I)^{-1}
+\end{equation}
+where $\mu$ is a damping factor (the larger $\mu$, the larger the error)\\
+It is a compromise between
+large joint velocity
+and task accuracy, it's used to obtain \textbf{robust behavior in the
+ presence of singularities},
+but in its basic version it always gives a task error.
+\subsection{Null-space methods}
+The null space methods are used to solve the redundancy problem.
+They give a solution in the form: \begin{equation}
+    \dot{q} = J^\# \cdot \dot{r} + (I - J^\# J) \cdot \dot{q}_0
+\end{equation}
+where $\dot{q}_0$ is a generic preferred joint velocity.\\
+The equation is the sum of the solution of the primary task 
+and the orthogonal projection of $\dot{q}_0$ on the null space of J (The null space 
+N represents the space of joint velocities that do not affect the end-effector position)
+We have mainly two methods:
+\begin{itemize}
+    \item \textbf{Projected gradient method} \ref{sec:Projected gradient method}
+   \item \textbf{Reduced gradient method}\ref{sec:Reduced gradient method}
+\end{itemize}
+    \subsubsection{Projected gradient method}\label{sec:Projected gradient method}
+    The solution for the projected gradient method is obtained by the minimization 
+    of the following function:
+    \begin{equation}
+        H = \frac{1}{2} (\dot{q}-\dot{q}_0)^T W (\dot{q}-\dot{q}_0)
+    \end{equation}
+    The solution is
+     given by:\begin{equation}
+        \dot{q} = J^\# \cdot \dot{r} + (I - J^\# J) \cdot \dot{q}_0
+    \end{equation} or \begin{equation}
+        \dot{q} = J^\# \cdot \dot{r} + (I - J^\# J) \cdot \nabla H(q)
+    \end{equation}
+    \textbf{Note:} there is a necessary condition of constrained 
+    optimality: $(I - J^\# J) \nabla H(q) = 0$\\
+    \textbf{Possible values of H} \\
+    The possible values of H are:
+    \begin{itemize}
+        \item manipulanility: $H = \sqrt{det(J J^T)}$
+        \item joint limits: $H_{range} = \frac{1}{2N}\sum_{i=1}^{n} \frac{(q_i - \bar{q_i})^2}{(q_{max_i} - q_{min_i})^2}$
+        \textbf{Note:} In this case $\dot{q}_0 = - \nabla H_{range}$, we introduce the minus because
+        we want to \texttt{minimize} the distance from the center of the joint range.
+        \item obstacle avoidance: $H = \min_{a \in robot } \min_{b \in obstacle} ||a(q) - b||^2$
+    \end{itemize}
+    \subsubsection{Reduced gradient method}\label{sec:Reduced gradient method}
+     The solution is
+     given by: \begin{equation}
+        \dot{q} = \begin{bmatrix}
+            \dot{q}_a \\
+            \dot{q}_b
+        \end{bmatrix} = \begin{bmatrix}
+            J_a^{-1} \\
+            0 
+        \end{bmatrix}\dot{r}
+        + \begin{bmatrix}
+            -J_a^{-1} J_b \\ 
+            I
+        \end{bmatrix} \cdot \begin{bmatrix} 
+            -(J_a^{-1}J_b)^T & I
+        \end{bmatrix} \nabla _q H
+    \end{equation}
+    Where $J_a$ is the greatest non singular minor of J and $J_b$ is 
+    the other minor. \\
+    \textbf{Finding the non singular minor} \\
+    The non singular minor can be found by using the following steps:
+    \begin{enumerate}
+        \item Compute the Jacobian J 
+        \item Compue the rank r of J
+        \item compute the determinant of all submatrices of J of size r
+        \item select the minor with the greatest (absolute) determinant (it must be 
+        non singular, so the determinant must be different from 0)
+    \end{enumerate}
+    \subsubsection{Resolution at acceleration level}\label{sec:Resolution at acceleration level}
+    The resolution at acceleration level is given by:
+    \begin{equation}
+        \ddot{q} = J(q)^{\#}(\ddot{r}-\dot{J}(q)\dot{q}) + (I - J(q)^{\#}J(q))\ddot{q}_0
+    \end{equation}
+    where $\ddot{q}_0$ is a generic preferred joint acceleration, that can be 
+    written as: $\ddot{q}_0 = - \nabla H_{range} - K_D \dot{q}$ where $K_D$ is a damping factor.
+    This yelds the minimum acceleration norm solution.
+\subsubsection{ex: find the joint velocity that minimizes the $H_{range}$ and scale it if not feasible.}
+The steps are the following:
+\begin{enumerate}
+    \item use the projected gradient method to find the joint
+     velocity that minimizes the $H_{range}$
+    \item if the joint velocity is not feasible we want to find a 
+    scaling factor k that makes it feasible. 
+    We want $\dot{r}new = k \dot{r}$
+    \item since we can write the new version of the $\dot{q}$ (that is $\dot{q}_{max}$) by substituting 
+    $\dot{r}$ with $\dot{r}new$ in the projected gradient method equation
+    \item we extract k from the equation, and we compute the new $\dot{r}$ as $\dot{r}new = k \dot{r}$
+\end{enumerate}
+\subsubsection{ex: find a solution in case of presence of task error}
+The steps are the following:
+\begin{enumerate}
+    \item to f ind the acceleration that brings the 
+    task error back to zero we modify the tsandard equation by 
+    adding the PD terms:
+    $\ddot{q} = -K_v\dot{q} + J(q)^{\#}(\ddot{r} + K_D(\dot{r}_d - J_r(q)\dot{q}) + K_P(r_d - p_x(q))) - (I - J(q)^{\#}J(q))\ddot{q}_0 + J_r(q)K_v\dot{q}$
+\end{enumerate}
+    \subsection{Task augmentation methods} \label{sec:Task augmentation methods}
+The task augmentation methods are used to solve the redundancy problem.
+\subsubsection{Task Priority}\label{sec:Task Priority}
+This method gives a solution that satisfies the several task in priority order in the following way:
+\begin{equation}
+    \dot{q} = J_1^\# \dot{r}_1 + (I - J_1^\# J_1)v_1
+\end{equation}
+where $v_1$ is made to soatisfy also (possibly) the lower priority task.
+\begin{equation}
+    v_1 = (J_2 P_1)^{\#}(\dot{r}_2 - J_2 J_1^\# \dot{r}_1)+(I -( J_2 P_1)^{\#}(J_2P_1))^{\#}v_2
+\end{equation}
+\subsubsection{General recursive task priority formulation}
+In the general recursive task priority formulation, we have to do the following:
+\begin{enumerate}
+    \item we start with $\dot{q}_0 = 0$ and $P_{A0}=I$
+    \item we compute the solution at kth level as: 
+    $\dot{q}_k = \dot{q}_{k-1} + (J_k P_{A,k-1})^{\#}(\dot{r}_k - J_k \dot{q}_{k-1})$
+    \item we compute the projection matrix as: $P_{A,k} = P_{A,k-1} - (J_kP_{A,k})^{\#} J_k P_{A,k-1}$
+\end{enumerate}
+where $P_{A,k-1} = I - J_{A,k-1}^{\#} J_{A,k-1}$ and $J_{A,k-1}$ is the jacobian of the k-1 task.
+\subsubsection{ex: check if the tasks can be executed in parallel}
+The steps are the following:
+\begin{enumerate}
+    \item Compute the Jacobian of the two tasks
+    \item Compute the rank of the two Jacobians and the rank of the extended Jacobian
+    \item If the rank of the extended Jacobian is equal to the sum of the ranks of the two Jacobians,
+        the tasks can be executed in parallel
+    \item If the rank of the extended Jacobian is less than the sum of the ranks of the two Jacobians,
+        the tasks can not be executed in parallel
+\end{enumerate}
+\subsection{SNS method}
+The SNS method is used to solve the redundancy 
+problem whith hard constraints. It saturate one overdriven joint command at a time, until a feasible and better
+performing solution is found.
+\begin{equation}
+    \dot{q} = (JW)^{\#} s\dot{x} + (I - (JW)^{\#}J) \dot{q}_N
+\end{equation}
+where s is the scaling factor,  W is the diagonal 0-1 matrix
+ , $\dot{q}_N$ contains
+ saturated
+ joint velocities.\\
+The algorithm is the following:
+\begin{enumerate}
+    \item Initialize W matrix with 1 on the diagonal if the joint is enabled, 0 if it is not
+    \item Compute the solution as: $\dot{q} = J^\# \dot{r}$
+    \item Check joint velocity limits: $\dot{q}_{min} \leq \dot{q} \leq \dot{q}_{max}$
+    \item Compute task scaling factor on the most critical joint
+    \item If a larger scaling factor is found, update W matrix
+    \item Disable the most critical joint by forcing it to its max velocity and repeat from step 2
+\end{enumerate}
+    \subsubsection{ex: find the acceleratoion command that satisfies the limits}
+We have to do the following:
+\begin{enumerate}
+    \item Compute the acceleration command $\ddot{q}=J(q)^{\#}(\ddot{p}-\dot{J}(q)\dot{q})$
+    \item Check if the acceleration command satisfies the limits
+    \item $\ddot{Q}_{min}= \max(A_{min}, \frac{V_{min}-\dot{q}}{T_c})$
+    \item $\ddot{Q}_{max}= \min(A_{max}, \frac{V_{max}-\dot{q}}{T_c})$
+    \item we have to check that $\ddot{Q}_{min} \leq \ddot{q} \leq \ddot{Q}_{max}$
+    \item if not we do:
+    \item $\ddot{p}_{new} = \ddot{p} - J_i A_i$ where i is the 
+    index of the most exceeding joint $J_i$ is the i-th column of the Jacobian and $A_i$ is the i-th joint max acceleration
+    \item re compute $\ddot{q}$ as $\ddot{q}=J(q)^{\#}_{new}(\ddot{p}_{new}-\dot{J}(q)_{new}\dot{q}_{new})$ where 
+    $J(q)_{new}$ is the Jacobian with the i-th column removed and $J(q)_{new}$ is the i-th joint max acceleration
+\end{enumerate}
+\subsubsection{ex: find the joint velocity that executes the task and that satisfies the joint velocities bound}
+We have to do the following:
+\begin{enumerate}
+    \item Compute $\dot{q}=J(q)^{\#}\dot{p}$
+    \item Check if the joint velocity satisfies the limits
+    \item If not find  the most exceeding joint i and recompute the 
+    velocity $\dot{p}$ as $\dot{p}_{new}=\dot{p} - J_i*V_i$
+    where $J_i$ is the i-th column of the Jacobian and $V_i$ is 
+    the i-th joint max velocity
+    \item re compute $\dot{q}$ as $\dot{q}=[(J_1 \dots J_{i-1}J_{i+1} \dots J_n)^{\#}\dot{p}_{new}]$
+\end{enumerate}
+
+
+
+
+ \subsubsection{ex: find the joint velocity with minimum 
+ norm that executes the task}
+    The steps are the following:
+    \begin{enumerate}
+        \item Compute the Jacobian J
+        \item Compute the rank of J
+        \item If the rank of J is fulls, use the pseudo-inverse
+        \item Otherwise us the pseudoinverse on $J_i$ containing the J
+         with only the independent rows use the corresponding rows in $\dot{r}$
+    \end{enumerate}
+\section{Dynamic redundancy resolution}
+The dynamic redundancy resolution is used to solve the redundancy problem.
+We have the Linear Quadratic problem:
+\begin{equation}
+    J(q) \ddot{q} = \ddot{x}= \ddot{r}-\dot{J}(q)\dot{q}
+\end{equation}
+typical objectives are:
+\begin{itemize}
+    \item \textbf{torque norm}: $H(q)=\frac{1}{2}*||\tau||^2$\\
+    \textbf{soution}: $\tau= (J(q)M^{-1}(q))^{\#}(\ddot{r}-\dot{J}(q)\dot{q}+J(q)M^{-1}(q)n(q,\dot{q}))$\\
+    when: good for short trajectories, otherwise it can lead to torque oscillations
+    \item \textbf{(squared inverse inertia weighted) torque norm}: $H(q)=\frac{1}{2} ||\tau||^2_{ M^{-2}}$\\
+    \textbf{soution}: $\tau= M(q)J^{\#}(q)(\ddot{r}-\dot{J}(q)\dot{q}+J(q)M^{-1}(q)n(q,\dot{q}))$\\
+    when: to be preferred, good performance in general
+    \item \textbf{(inverse inertia weighted) torque norm}: $H(q)=\frac{1}{2} ||\tau||^2_{ M^{-1}}$\\
+    \textbf{soution}: $\tau= J^T(q)(J(q)M^{-1}(q)J^T(q))^{-1}*(\ddot{r}-\dot{J}(q)\dot{q}+J(q)M^{-1}(q)n(q,\dot{q}))$
+\end{itemize}
+\textbf{Note:} $n(q,\dot{q})$ is the sum of (coriolis, centrifugal, gravity) torques $c(q,\dot{q})$ and $g(\dot{q})$.
+\subsection{Linear Quadratic problem}
+To solve a linear quadratic problem we have to follow the following steps:
+\begin{enumerate}
+    \item Start from defining the objective function as: $H(q)=\frac{1}{2}(\ddot{q}-\ddot{q}_0)^T W (\ddot{q}-\ddot{q}_0)$
+     or $H(q)=\frac{1}{2}(\dot{q}-\dot{q}_0)^T W (\dot{q}-\dot{q}_0)$ (identify your weight matrix from there)
+     \item we have to set the constraints as $Jx=y$ and we have to identify 
+        the value of x and y in our case (typically if x is $\ddot{q}$, y is $\ddot{r}-\dot{J}\dot{q}$
+         while if x is $\dot{q}$, y is $\dot{r}$)
+    \item find $x_0$ by setting the derivative of the objective function to 0
+    \item we have to compute the solution as: $x = x_0 + W^{-1}J^T(JW^{-1}J^T)^{-1}(y-Jx_0)$
+\end{enumerate}
+\subsubsection{standard velocity case}
+The Linear Quadratic problem is given by:
+\begin{equation}
+    \min{H(q)} = \frac{1}{2} (\dot{q}-\dot{q}_0)^T W (\dot{q}-\dot{q}_0)
+\end{equation} s.t. \begin{equation}
+    J(q) \dot{q} = \dot{r}
+\end{equation}
+The solution is given by:
+\begin{equation}
+    \dot{q} = \dot{q}_0 + J^{\#}(q)_W (\dot{r}-J(q)\dot{q}_0)
+\end{equation}
+which is equal to:
+\begin{equation}
+    \dot{q} = J^{\#}_W\dot{r}+(I - J^{\#}_WJ)\dot{q}_0
+\end{equation}
+\subsection{Quadratic programming}
+The quadratic programming is used to solve the redundancy problem,
+it is a generalization of the linear quadratic problem.
+The general form of the quadratic programming is given by:
+\begin{equation}
+    \min \frac{1}{2}||J(q)\ddot{q}-\ddot{r}||^2 + \frac{1}{2}||\omega||^2
+\end{equation} s.t. \begin{equation}
+    C(q,\dot{q})\dot{q} - \omega \leq d
+\end{equation}
+with $\omega$ the slack variable, $C(q,\dot{q})$ the constraint 
+matrix and d the constraint vector.
+The solution is given by:
+
+
+
+
+
+\section{Dynamic Model}
+The \textbf{dynamic model} of a robot provides 
+the relationship between the generalized forces $u$ and the
+assumed configurations over time $q(t)$ in form of 
+a set of differential equations $\phi(q,\dot{q},\ddot{q})=u$\\
+We have mainly two ways to obtain the dynamic model of a robot:
+\begin{enumerate}
+    \item \textbf{Euler-Lagrangian method}: to 
+    obtain the dynamic model of a robot in \textbf{closed form} \\
+     \textbf{best for }: studyinng 
+    dynamic properties and control schemes
+    \item \textbf{Newton-Euler method}: to obtain the dynamic model of a robot in 
+     a \textbf{recursive way}.\\
+     \textbf{best for }: implementation of contol schemes
+\end{enumerate}
+\section{Euler-Lagrangian method}
+\subsection{Euler Lagrange equation}
+The Euler Lagrange equation is given by:
+\begin{equation}
+    \frac{d}{dt} \left( \frac{\partial L}{\partial \dot{q}} \right) - \frac{\partial L}{\partial q} = u
+\end{equation}
+where L is the Lagrangian of the robot and u are the non 
+conservative forces.\\
+The Lagrangian is given by:
+\begin{equation}
+    L(q,\dot{q})= T(q,\dot{q}) - U(q)
+\end{equation}
+where T is the kinetic energy and U is the potential energy.
+
+\subsection{Dynamic equation}
+The full dynamic equation is given by:
+\begin{equation}
+    M(q) \ddot{q} + C(q, \dot{q}) \dot{q} + G(q) = u
+\end{equation}
+where:
+\begin{itemize}
+    \item $M(q)$ is the inertia matrix
+    \item $C(q, \dot{q})$ is the coriolis and centrifugal matrix
+    \item $G(q)$ are the gravity matrix
+    \item $u$ is the non conservative forces
+    \item $\ddot{q}$ is the joint acceleration
+    \item $\dot{q}$ is the joint velocity
+    \item $q$ is the joint position
+\end{itemize}
+alternatively we can write the dynamic equation as:
+\begin{equation}
+    M(q) \ddot{q} + S(q,\dot{q}) \dot{q} + G(q) = u
+\end{equation}
+\subsubsection{ex: find the dynamic equation of the robot}\label{sec:find the dynamic equation of the robot}
+The steps are the following:
+\begin{enumerate}
+    \item Start from defining the kinetic energy of the robot
+     as: $T_i = \frac{1}{2} m_i \dot{r_i}^2 + \frac{1}{2} \omega_i^T I \omega_i$
+     \item Compute the kinetic energy of the robot as: $T = \sum_{i=1}^{n} T_i$
+     \item Compute the inertia matrix as: $M(q) = 2*\frac{\partial T}{\partial \dot{q}^2}$
+     \item Find the coriolis and centrifugal matrix as in \ref{sec:Coriolis and centrifugal matrix}
+     \item Find the gravity vector as in \ref{sec:Potential Energy}
+     \item Compute the friction torque  
+     \item Compute u as: $u = \tau - \tau_{friction}$ where $\tau$ is the commanded torque
+     \item Compute the dynamic equation as: $M(q) \ddot{q} + C(q, \dot{q}) \dot{q} + G(q) =u$
+\end{enumerate}
+\subsection{Inertia matrix} \label{sec:Inertia matrix}
+The inertia matrix is a matrix that contains the inertia of the robot, it can be derived by the 
+following \textbf{foundamental relation}:
+\begin{equation}
+    T= \frac{1}{2} \dot{q}^T M(q) \dot{q}
+\end{equation}
+where T is the kinetic energy of the robot. 
+\subsubsection{Properties}
+The properties of the inertia matrix are:
+\begin{itemize}
+    \item $M(q)$ is symmetric
+    \item $M(q)$ is positive definite
+    \item $M(q)$ is full rank
+\end{itemize}
+\textbf{Note:} the inertia matix is never a function of the first coordinate q1.
+\subsubsection{Standard body inertia matrix}
+\begin{itemize}
+    \item \textbf{parallelepiped}: given sides a (height), b (width), c (depth)
+     and mass m, the inertia matrix is given by: \begin{equation}
+        I = \frac{m}{12} \begin{bmatrix}
+            b^2 + c^2 & 0 & 0 \\
+            0 & a^2 + c^2 & 0 \\
+            0 & 0 & a^2 + b^2
+        \end{bmatrix}
+    \end{equation}
+    \item \textbf{empty cylinder}: given inner radius a and outer radius b, height c and mass m,
+     the inertia matrix is given by: \begin{equation}
+        I = \frac{m}{12} \begin{bmatrix}
+            6(a^2 + b^2) & 0 & 0 \\
+            0 & 3a^2 + 3b^2 + c^2 & 0 \\
+            0 & 0 & 3a^2 + 3b^2 + c^2
+        \end{bmatrix}
+    \end{equation}
+\end{itemize}
+\textbf{fundamental kinematic relation ofr rigid bodies}:
+ $v = v_{cm} + \omega \times r = v_{cm} + S(\omega) r$
+\subsubsection{ex: find the inertia matrix of a robot given the DH table and position of COMs}
+The steps are the following:
+\begin{enumerate}
+    \item The first thing we want to do is to compute the T matrix for each link as in \ref{sec:Kinetic Energy}
+    \item Now we can compute all the $T_i$ and the final T as $T = \sum_{i=1}^{n} T_i$
+    \item Finally we can obtain the inertia matrix as: $M(q) = 2*\frac{\partial T}{\partial \dot{q}^2}$
+\end{enumerate}
+\subsubsection{ex: check if a matrix is an inertia matrix}
+The steps are the following:
+\begin{enumerate}
+    \item Check that the matrix is not dependent from the first coordinate \textbf{(note, it can be dependent from the 
+    difference between the first and another coordinate, but not directly from the first coordinate)}
+    \item Check if the matrix is symmetric
+    \item Check if the matrix is positive definite: \begin{itemize}
+        \item Check if the determinant is negative, in that case the 
+        matrix is not positive definite, if it is positive continue
+        \item Compute the eigenvalues of the matrix
+        \item Check if all the eigenvalues are positive, if any eigenvalue is negative the 
+        matrix is not positive definite
+    \end{itemize}
+    
+\end{enumerate}
+
+\subsection{Coriolis and centrifugal matrix} \label{sec:Coriolis and centrifugal matrix}
+The coriolis and centrifugal matrix is given by:\begin{equation}
+    c_i(q, \dot{q}) = \dot{q}^T C_i(q) \dot{q}
+\end{equation}
+where $C_i(q)$ is the matrix of \textbf{Christoffel symbols} obtained as:
+\begin{equation}
+    C_i(q) = \frac{1}{2}  \left( \frac{\partial M_{i}}{\partial q} + (\frac{\partial M_{i}}{\partial q})^T - \frac{\partial M}{\partial q_i} \right)
+\end{equation}
+where $M_i$ is the i-th column of the inertia matrix.
+
+
+\subsection{Kinetic Energy}\label{sec:Kinetic Energy}
+The kinetic energy of a link is given by: (Konig theorem)
+\begin{equation}
+    T_i = \frac{1}{2} m_i\cdot^0v_{c,i}^T\cdot^0v_{c,i} + \frac{1}{2} \omega_i^T I_{c,i} \omega_i
+\end{equation}
+\textbf{Note:} $\omega_i$ and $I_{c,i}$ should be expressed in the same reference frame,
+but the product $\omega_i^T I_{c,i} \omega_i$ is invariant w.r.t. any chosen frame\\
+An alternative way to compute the kinetic energy is:
+\begin{equation}
+    T = \frac{1}{2} \dot{q}^T M(q) \dot{q}
+\end{equation}
+
+\subsubsection{Moving frames algorithm}
+The moving frames algorithm is used to compute the kinetic energy of a robot.
+The steps are the following:
+\begin{enumerate}
+    \item initialize $^0v_0 = 0$ and $^0\omega_0 = 0$
+    \item define $\sigma = 0$ if the joint is revolute, $\sigma = 1$ if the joint is prismatic
+    \item compute $^i\omega_i = ^{i-1}R_i^T(q_i) \cdot[^{i-1}\omega_{i-1} + (1-\sigma)\dot{q}_i ^{i-1}z_{i-1}]$
+    \item compute \begin{equation} 
+        ^i v_i = ^{i-1}R_i^T(q_i) \cdot[^{i-1}v_{i-1} + \sigma_i\dot{q}_i ^{i-1}z_{i-1} + ^{i-1}\omega_i \times ^{i-1}r_{i-1,i}]
+    \end{equation}
+    \begin{equation}
+    =^{i-1}R_i^T(q_i) \cdot[^{i-1}v_{i-1} + \sigma_i\dot{q}_i ^{i-1}z_{i-1}] + ^i\omega_i \times ^ir_{i-1,i} 
+\end{equation}
+    \item compute $^i v_{c,i} = ^i v_i + ^i\omega_i \times ^i r_{c,i}$
+    \item compute $T_i = \frac{1}{2} m_i ^i v_{c,i}^{T}v_{c,i} + \frac{1}{2}\cdot ^i\omega_i^T I_{c,i} ^i\omega_i$
+\end{enumerate}
+where $^i r_{c,i}$ is the distance of the COM from frame i,
+$^i r_{i-1,i}$ is the distance of the joint i from frame i-1,
+$^{i-1}z_{i-1}$ is the z axis $\begin{bmatrix} 0 & 0 & 1 \end{bmatrix}^T$
+\subsubsection{ex: find the kinetic energy of a robot}
+To obtaint the kinetic energy of a robot we must calculate the kinetic 
+energy of each link and sum them up.\\
+To obtain $T_i$ we have to do the following:
+\begin{enumerate}
+    \item Check if the link is prismatic or revolute
+    \item If it is prismatic: \begin{itemize}
+        \item we just have to compute the linear velocity of the center of mass, that is 
+        given by: the linear velocities of the previous link + the linear velocity of the
+            center of mass of the link expressed in function of $\dot{q}_i$ 
+        \item we can write the kinetic energy as: $T_i = \frac{1}{2} m_i \cdot^0v_{c,i}^T\cdot^0v_{c,i}$
+    \end{itemize}
+    \item If it is revolute: \begin{itemize}
+        \item we have to compute the linear velocity $^0v_{c,i}$ of the center of mass, that is 
+        given by $^0\dot{p_{c,i}}$
+        \item we have to compute the angular velocity $\omega_i$  of the link, that 
+        is given by the sum of the angular velocities of the previous 
+        links and the current one (that is $\dot{q_i}$)
+        \item we can write the kinetic energy as: $T_i = \frac{1}{2} m_i \cdot^0v_{c,i}^T\cdot^0v_{c,i} + \frac{1}{2} \omega_i^T I_{c,i} \omega_i$
+    \end{itemize}
+        \item Finally we can sum all the $T_i$ to obtain the kinetic energy of the robot
+    \end{enumerate}
+\subsection{Potential Energy} \label{sec:Potential Energy}
+The potential energy of a link is given by:
+\begin{equation}
+    U_i = -m_i g^T r_{0,ci}
+\end{equation}
+where:
+$r_{c,i}$ is the distance from the center of mass to the reference frame and \textbf{g} is 
+the gravity vector (usually $[0,-9.81,0]^T$).\newline
+\textbf{Note:} if you are given the distance of the center of ass from the 
+previous link and not the general frame of reference, you have to multiply the 
+vector with the transformation matrix (homogeneus) that you can obtain from the DH table
+\begin{equation}
+    [r_{0,ci}, 1]^T=^0A_1 \cdot ^1A_2 \dots ^{i-1}A_i [r_{i,ci}, 1]^T
+\end{equation}\\
+we have that: \begin{equation}
+    U= U_1+U_2+ \dots +U_n
+\end{equation}
+We can find the gravity vector $g(q)$ as:
+\begin{equation}
+    g(q) = \begin{bmatrix}
+        \frac{\partial U}{\partial q_1} \\
+        \vdots \\
+        \frac{\partial U}{\partial q_n}
+    \end{bmatrix}
+\end{equation}
+\textbf{Note:} the gravity term is equal to zero (g(q)=0) when:
+\begin{itemize}
+    \item we are moving horizontally (constant U)
+    \item we have static balancing (distribution of masses)
+    \item we have mechanical compensation (system of springs or closed kinematic chains)
+\end{itemize}
+    \subsubsection{ex:Define suitable relations between the link masses, lengths, and CoM position given an expected gravity term}
+The steps are the following:
+\begin{itemize}
+    \item express the position of the COMs wrt the origin frame (using the DH values
+    to find the transformation matrices) $^0r_{ci}=^0A_i ^ir_{ci}$
+    \item find $U_i = -m_i g r_{ci}$
+    \item write g(q) = $\frac{\delta U}{\delta q_i}$
+    \item impose g(q) = expected gravity term and find the 
+    relations between the link masses, lengths and CoM positions
+\end{itemize}
+\subsubsection{ex: define a tight bound on the norm of the square matrix $\frac{\partial{g}}{\partial{q}}$} \label{sec:define a tight bound on the norm of the square matrix}
+The steps are the following:
+\begin{itemize}
+    \item first compute the gravity vector g(q)
+    \item then perform $\frac{\partial{g}}{\partial{q}}=\frac{^2\partial{U}}{\partial{q}^2}$
+    \item compute the norm as: $||\frac{\partial{g}}{\partial{q}}||= \sqrt{\lambda_{max}}$
+   where $\lambda_{max}$ is the maximum eigenvalue of the matrix $(\frac{\partial{g}}{\partial{q}}^T \frac{\partial{g}}{\partial{q}})$
+    \item find the bound $\alpha$ as the highest possible value of the norm (by setting arbitrarly q values)
+\end{itemize}
+
+
+\subsection{Energy Conservation}
+The total robot energy is expressed as: 
+\begin{equation}
+    E = T + U = \frac{1}{2}\dot{q}^T M \dot{q} + U(q)
+\end{equation}
+The evolution of the total energy over time is given by:
+\begin{equation}
+    \dot{E}=\dot{q}^Tu+\frac{1}{2}\dot{q}^T(\dot{M}(q)-2S(q,\dot{q}))\dot{q}
+\end{equation}
+If the potential energy is constant: $\dot{E}=\dot{q}^T u = \dot{L}$
+\subsection{Additional dynamic terms}
+\subsubsection{Friction torque}
+The viscous friction torque is given by:
+\begin{equation}
+    u_{V,i}=-F_{V,i}\dot{q}_i
+\end{equation}
+The Coulomb friction torque is given by:
+\begin{equation}
+    u_{C,i}=-F_{C,i}sign(\dot{q}_i)
+\end{equation}
+\subsubsection{Electrical motors}
+motor i mounted on link $i-1$ (or before) often with 
+its spinning axis aligned with joint axis i.\\
+The mass is added to the link $i-1$ and the inertia is
+added to the robot kinetic energy.
+\subsubsection{Complete dynamic model}
+The complete dynamic model is given by:
+\begin{equation}
+    (M(q)+B_m(q))\ddot{q} + C(q,\dot{q})\dot{q} + g(q) + F_v\dot{q} + F_c sign(\dot{q}) = \tau
+\end{equation}
+where $B_m(q)$ is the motor inertia matrix, $F_v$ is the 
+viscous friction coefficient and $F_c$ is the Coulomb friction 
+coefficient and $\tau$ are motor torques after the reduction gears.\\
+To introduce \textbf{elasticity} we can add a term $K(q)q$ to the
+left side of the equation.
+\subsection{Structural properties in dynamic models}
+The coriolis term $C(q,\dot{q})$ can be  rewritten as $S(q,\dot{q})\dot{q}$ where 
+S is the skew-symmetric matrix.\\
+The matrix $\dot{M}(q)-2S(q,\dot{q})$ is symmetric.
+\subsubsection{ex: find matrix S that satisfies $\dot{M}(q)-2S(q,\dot{q})$ is skewsymm}
+The steps are the following:
+\begin{enumerate}
+    \item Compute the coriolis matrix as in \ref{sec:Coriolis and centrifugal matrix}
+    \item Compute the skew symmetric matrix as: $S(q,\dot{q}) = [S_1;...;S_n]$ where $S_i$ is 
+    the skew symmetric matrix obtained by multiplying $S_i = dq^T \cdot C_i$
+    \item Check if the matrix $\dot{M}(q)-2S(q,\dot{q})$ is skew symmetric
+\end{enumerate}
+\subsubsection{ex: find a different (non standard) matrix S' 
+that satisfies $\dot{M}(q)-2S'(q,\dot{q})$ is skewsymm and a matrix S''
+that does not satisfy the property}
+The steps are the following:
+\begin{enumerate}
+    \item Compute the coriolis matrix as in \ref{sec:Coriolis and centrifugal matrix}
+    \item Compute the skew symmetric matrix as: $S(q,\dot{q}) = [S_1;...;S_n]$ where $S_i$ is 
+    the skew symmetric matrix obtained by multiplying $S_i = dq^T \cdot C_i$
+    \item Find a different matrix S'= S + SS that satisfies the property by adding 
+    a skew symmetric matrix SS to the original S (Note: $SS*\dot{q}$=0)
+    \item Find a matrix S'' = S + SS that does not satisfy the property
+    by adding to the original S a matrix that is not skew symmetric SS
+    but still is a feasible factorization (i.e. $S''(q,\dot{q}) \dot{q} 
+    = c(q,\dot{q})$, ie $SS*\dot{q} = 0$)
+\end{enumerate}
+
+
+
+\section{Linear parametrization of the dynamic model}
+Each link is characterized by 10 dynamic parameters:
+\begin{itemize}
+    \item 1 mass $m_i$
+    \item 3 coordinates of the center of mass $r_{c,i} = \begin{bmatrix}
+        r_{c,i}^x & r_{c,i}^y & r_{c,i}^z
+    \end{bmatrix} ^T$
+    \item 6 elements of the inertia matrix $I_{c,i} = \begin{bmatrix}
+        I_{c,i}^{xx} & I_{c,i}^{xy} & I_{c,i}^{xz} & I_{c,i}^{yy} & I_{c,i}^{yz} & I_{c,i}^{zz}
+    \end{bmatrix} ^T$ (the upper triangular part)
+\end{itemize}
+Both Potential and Kinetic energy can be expressed 
+as a linear combination of the dynamic parameters $pi$:
+\begin{equation}
+    T_i= \frac{1}{2}m_i ^iv_i^T \cdot ^i v_i + \frac{1}{2} \omega_i^T I_{c,i} ^i\omega_i + m_i ^ir_{c,i}^T S(^iv_i)*^i\omega_i
+\end{equation}
+\begin{equation}:
+    U_i = -m_i g_0^T r_{i}-g_0^T \cdot ^0R_i m_i ^ir_{c,i}
+\end{equation}
+Since the dynamic model is linear on T and U,
+the dynamic model can be expressed as:
+\begin{equation}
+    M(q) \ddot{q} + C(q, \dot{q}) \dot{q} + G(q) = Y_{\pi}(q,\dot{q},\ddot{q}) \pi=u
+\end{equation}
+where $Y_{\pi}(q,\dot{q},\ddot{q})$ is the regressor matrix that has a block
+upper triangular structure.\\
+\textbf{Important:} the dynamic model can be rewritten as:
+\begin{equation}
+    Y(q,\dot{q},\ddot{q}) a = Y_{\pi}(q,\dot{q},\ddot{q}) \pi
+\end{equation}
+where a is the vector (px1) of the dynamic coefficients ( ie the 
+combination of the dynamic parameters that matter in the dynamic model)
+\subsection{Minimal parametrization}
+Determining the minimal parametrization means to find the
+smallest p that allows to express the dynamic model.\\
+\subsubsection{ex: find the regressor matrix Y for a parametrized matrix M such that M=Ya}
+The steps are the following:
+\begin{enumerate}
+    \item Obtain Y on matlab as $Y = jacobian(M,a)$
+    \item In mathematically terms we have to compute the 
+    derivative of M w.r.t. a
+\end{enumerate}
+
+
+
+
+
+\section{Newton-Euler method}
+\subsection{Newton and Euler equations}
+\subsubsection{Newton equation}
+The Newton equation is given by:
+\begin{equation}
+    \sum{f}_i = m \cdot \dot{v}_c
+\end{equation}
+where $f_i$ are force acting on the link and $v_c$ is the
+ linear velocity of the center of mass.\\
+ By the principle of action and reaction we have that:
+    \begin{equation}
+        f_i -f_{i+1} +m_ig = m_i \dot{v}_{c,i}
+    \end{equation}
+    where $f_i$ is the force from link i-1 to i, $f_{i+1}$ is 
+    the force applied from i on i+1, $m_i$ is the mass of the 
+    link and $g$ is the gravity vector.
+    \textbf{Note:} all vectors must be expressed in th same 
+    reference frame.
+\subsubsection{Euler equation}
+The Euler equation is given by:
+\begin{equation}
+    \sum{\mu}_i = I \cdot \dot{\omega} + \omega \times I \omega
+\end{equation}
+where $\mu_i$ are the torques acting on the link
+ and $\omega$ is the angular velocity of the link and I
+  is the inertia matrix.\\
+  By the principle of action and reaction we have that:
+    \begin{equation}
+        \tau_i -\tau_{i+1} + f_i \times r_{i-1,ci} + f_{i+1} \times r_{i,ci} = I_i \dot{\omega}_i + \omega_i \times (I_i \omega_i)
+    \end{equation}
+    where $\tau_i$ is the torque acting on the link, $\tau_{i+1}$ is 
+    the torque acting on the next link, $I_i$ is the inertia matrix of the 
+    link and $\omega_i$ is the angular velocity of the link.
+\subsection{Recursive Newton-Euler algorithm}
+The recursive Newton-Euler algorithm is used to compute the 
+dynamic model of a robot. It works as folows:
+\subsubsection{Initialization}
+set:
+\begin{itemize}
+    \item $^0\omega_0 = 0$
+    \item $^0\dot{\omega}_0=0$
+    \item $^0a_0 = 0$
+    \item $f_{N+1} = 0$
+    \item $\tau_{N+1} = 0$
+\end{itemize}
+\subsubsection{Forward recursion}
+\begin{itemize}
+    \item Compute $^i\omega_i$ and $^i\dot{\omega}_i$ as: \begin{equation}
+        ^i\omega_i = ^{i-1}R_i^T \cdot[ ^{i-1}\omega_{i-1} + \dot{q}_i ^{i-1}z_{i-1}]
+    \end{equation} \begin{equation}
+        ^i\dot{\omega}_i = ^{i-1}R_i^T \cdot[ ^{i-1}\dot{\omega}_{i-1} + \ddot{q}_i ^{i-1}z_{i-1}  + \dot{q}_i ^{i-1}\omega_{i-1} \times ^{i-1}z_{i-1}]
+    \end{equation}
+    \item Compute $^i a_i$ as: \begin{equation}
+        ^i a_i = ^{i-1}R_i^T \cdot (^{i-1}a_{i-1}) + ^{i}\dot{\omega}_{i} \times ^{i}r_{i-1,i} + ^{i}\omega_{i} \times (^{i}\omega_{i} \times ^{i}r_{i-1,i})
+    \end{equation}
+    \item Compute $^i a_{ci}$ as: \begin{equation}
+        ^i a_{ci} = ^i a_i + ^i\dot{\omega}_i \times ^i r_{c,i} + ^i\omega_i \times (^i\omega_i \times ^i r_{c,i})
+    \end{equation}
+\end{itemize}
+
+\subsubsection{Backward recursion}
+\begin{itemize}
+    \item Compute $^i f_i$ as: \begin{equation}
+        ^i f_i = ^iR_{i+1} \cdot ^{i+1}f_{i+1} + m_i \cdot (^i a_{ci} - ^ig)
+    \end{equation}
+    \item Compute $^i \tau_i$ as: \begin{equation}
+        ^i \tau_i = ^iR_{i+1} \cdot ^{i+1}\tau_{i+1} + (^iR_{i+1}^{i+1}f_{i+1}) \times ^ir_{i,ci} -^if_i \times (^ir_{i-1,i}+^ir_{c,i})+I_i \cdot ^i\dot{\omega}_i + ^i\omega_i \times (I_i \cdot ^i\omega_i)
+    \end{equation}
+\end{itemize}
+\subsubsection{Generalized forces}
+The generalized forces are given by:
+\begin{equation}
+    u_i = \begin{cases}
+        ^if_i\cdot ^i*z_{i-1} & \text{if the joint is prismatic} \\
+        ^i\tau_i^T\cdot ^i*z_{i-1} & \text{if the joint is revolute}
+    \end{cases}
+\end{equation}
+\subsection{Output examples}
+Using the matlab routine $Ne_\alpha(arg1,arg2,arg3)$ we can obtain 
+the following outputs:
+\begin{itemize}
+    \item  \textbf{complete inverse dynamics}: $Ne_{^0g}(q,dq,ddq)= M(q) \cdot ddq + C(q,dq) + g(q)$
+    \item \textbf{gravity term}: $Ne_{^0g}(q,0,0) = g(q)$
+    \item \textbf{coriolis term}: $Ne_{0}(q,dq,0) = C(q,dq)$
+    \item \textbf{i-th column of the inertia matrix}: $Ne_{0}(q,0,e_i) = M_i(q)$ where $e_i$
+     is the i-th column of the identity matrix
+    \item \textbf{generalized momentum}: $Ne_{0}(q,0,\dot{q}) = M(q) \cdot \dot{q}$
+\end{itemize}
+\textbf{Note:} for the command $Ne_{0}(q,0,0)$, if a force $F_e$
+is applied to the end effector, the output is: $Ne_{0}(q,0,0) = J^T(q)F_e$
+where J is the Jacobian matrix of the robot.
+
+\section{Basic control}
+There are two main types of control schemes:
+\begin{itemize}
+    \item \textbf{open loop control}: the control input is computed 
+    without any feedback from the system
+    \item \textbf{closed loop control}: the control input is computed 
+    using feedback from the system
+\end{itemize}
+Types of control systems base on uncertainty
+\begin{itemize}
+    \item \textbf{feedback control}: small variations of parameters and initial
+    conditions
+    \item \textbf{robust control}: large variations of parameters and
+     initial conditions
+     \item \textbf{adaptive control}: mproves performance online, 
+     adapting the control law to unknown
+     range of uncertainties
+    \item \textbf{intelligent control}: control based on experience
+\end{itemize}
+The different types of control are based on the type of
+error and task can be observed in figure \ref{fig:Control system}.
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\textwidth]{control.png}
+    \caption{Control system}
+    \label{fig:Control system}
+\end{figure}
+\subsection{Control notation}
+we use a new notation for position and velocity that are now expressed as:
+\begin{equation}
+    x = \begin{bmatrix}
+        x_1 \\
+        \vdots \\
+        x_2
+    \end{bmatrix}=
+    \begin{bmatrix}
+        q_1 \\
+        \vdots \\
+        q_n
+    \end{bmatrix}
+\end{equation}
+\subsection{Equilibrium}
+There are two types of equilibrium:
+\begin{itemize}
+    \item \textbf{unforced equilibrium}: $u=0$ zero velocity and 
+    no gravity forces on the robot
+    \item \textbf{forced equilibrium}: $u=u(x)$ zero velocity and
+        $u(x_e)=g(x_{e1})$
+\end{itemize}
+
+\subsection{Stability of dynamical systems}
+Stability of $x_e$ is defined as:
+\begin{equation}
+\forall \epsilon > 0, \exists \delta > 0 : ||x(t_0)-x_e||<\delta \Rightarrow ||x(t)-x_e||<\epsilon
+\end{equation}
+\subsubsection{Asymptotic stability}
+Asymptotic stability of $x_e$ is defined as:
+\begin{equation}
+\exists \delta > 0 : ||x(t_0)-x_e||<\delta \Rightarrow \lim_{t \to \infty} ||x(t)-x_e||=0
+\end{equation}
+\textbf{Note:} this definition is in the sense of Lyapunov
+\subsubsection{Exponential stability}
+Exponential stability of $x_e$ is defined as:
+\begin{equation}
+    \exists \delta, c, \lambda > 0 : ||x(t_0)-x_e||<\delta \Rightarrow ||x(t)-x_e|| \leq c e^{-\lambda (t-t_0)} ||x(t_0)-x_e||
+\end{equation}
+\begin{itemize}
+\item can estimate the time to approximately converge
+\item typically this is a local property
+\end{itemize}
+\textbf{Note:} a necessary condition for $x_e$ to be both
+globally asymptotically stable and exponentially stable is that
+it is the only equilibrium point of the system.
+
+\subsection{Lyapunov stability}
+\subsubsection{Lyapunov candidate}\label{sec:Lyapunov candidate}
+A Lyapunov candidate is a function $V(x)$ that is positive definite
+that can be used to prove the stability of a system.\\
+Examples of Lyapunov candidates are:
+\begin{itemize}
+    \item for a dynamic system: $V(x) = T(x) + U(x)$ + eventual 
+    additional terms
+\end{itemize}
+\subsubsection{ex: write the Lyapunov candidate given a dynamic model
+and a control law}
+The steps are the following:
+\begin{enumerate}
+    \item given the dynamic models of the system, we want 
+    to, first substitute the control law in them if possible
+    \item then we create the Lyapunov candidate by summing 
+    the kinetic and potential energy of the system 
+    (from all the systems dynamic equation), plus a virtual potential energy
+    $K_P$ introduced by the control if any 
+    \item then we compute the derivative of V as:\\
+    for example, for a basic PD control V(x) is: \begin{equation}
+    V=1/2*\dot{q}M(q)\dot{q}+1/2*e^TK_Pe
+    \end{equation}
+    then $\dot{v}(x)$ is:\begin{equation}
+    \dot{V}=\dot{q}^TM(q)\ddot{q}+1/2\dot{q}^T\dot{M}(q)\dot{q}-
+    e^TK_P\dot{q} = \dot{q}^T(1/2\dot{M}(q)\dot{q}+u-S(q,\dot{q})\dot{q}) -
+    e^TK_P\dot{q} = -\dot{q}^TK_D\dot{q} \leq 0
+    \end{equation}
+    Note: when proving $\dot{v}\leq0$ you can use the follwing 
+    property: \begin{equation}
+    \dot{q}^T(\dot{M}(q)-2S(q,\dot{q}))\dot{q}=0
+    \end{equation}
+\end{enumerate}
+    \subsubsection{Lyapunov stability}
+Lyapunov stability of $x_e$ is defined as:
+\textbf{Sufficient condition of stability}
+\begin{equation}
+    \exists V \text{candidate} : \dot{V}(x) \leq 0 \text{along the trajectories of the system}
+\end{equation}
+\textbf{Sufficient condition of asymptotic stability}
+\begin{equation}
+    \exists V \text{candidate} : \dot{V}(x) < 0 \text{along the trajectories of the system}
+\end{equation}
+\textbf{Sufficient condition of instability}
+\begin{equation}
+    \exists V \text{candidate} : \dot{V}(x) > 0 \text{along the trajectories of the system}
+\end{equation}
+
+\subsection{LaSalle Theorem}\label{sec:LaSalle Theorem}
+La Salle's theorem states that if $\exists V \text{candidate}$ such 
+that: $\dot{V}(x) \leq 0$ along the trajectories of the system, then:\\
+system trajectories are bounded and converge to the largest invariant
+ set \\$M \subseteq S = \{x \in \mathbb{R}^n | \dot{V}(x) = 0\}$\\
+ \textbf{Corolloary:} $M \equiv {x_e} \rightarrow$ asymptotic stability
+
+ \subsection{Stability of dynamical systems}
+ for general time-varying systems, the stability can be 
+ analyzed using the Lyapunov method.\\
+ \subsubsection{Barbalat Lemma}
+    Barbalat's lemma states that if \begin{itemize}
+        \item a function V(x,t) is lower bounded
+        \item $\dot{V}(x,t) \leq 0$ 
+    \end{itemize}
+    then $\lim_{t \to \infty} \dot{V}(x,t) = 0$.\\
+    \textbf{Corollary:} if a Lyapunov candidate V(x,t) 
+    satisfies Barbalat's lemma, then the conclusion of 
+    LaSalle's theorem holds (ie. the system is asymptotically stable)
+
+\subsubsection{ex: verify the unique asymptotic stability of a closed loop
+system in a given equilibrium}
+Ways to verify the asymptotic stability of a
+closed loop system:
+\begin{itemize}
+    \item \textbf{Lyapunov + LaSalle}: we have to find a Lyapunov
+    candidate V(x) \ref{sec:Lyapunov candidate} and prove that $\dot{V}(x) < 0$ and then apply
+    LaSalle's theorem \ref{sec:LaSalle Theorem}
+    \item \textbf{Linearization}: analyzes the linearized version of the system
+    dynamics, obtained by a first-order Taylor expansion around the desired closed-loop equilibrium
+    point
+\end{itemize}
+\textbf{Lyapunov + LaSalle}:\\
+The steps are the following:
+\begin{enumerate}
+    \item write (if not given) the dynamic model of the system 
+    \begin{itemize}
+        \item for system of masses: \ref{sec:ex: find the dynaic model of a system of masses}
+        \item for a robot: \ref{sec:find the dynamic equation of the robot}
+    \end{itemize}
+    \item write the control law (if not given). (Note: if you have multiple
+    dynamic equations there might be some conditions on the control law, depending
+    on the relation between the dynamic equations)
+    \item obtain the closed loop system equations (by 
+    equating the right side of the dynamic model(s) to the control law)
+    \item find a Lyapunov candidate V(x) \ref{sec:Lyapunov candidate}. 
+    Note: one single Lyapunov candidate independently of 
+    the number of dynamic equations
+    \item verify that $V(x)$ is positive for all states and for 
+    the desired state it is equal to zero (when $x = x_d$)
+    \item compute $\dot{V}(x)$
+    \item prove that $\dot{V}(x) < 0$
+    \item prove that the equilibrium is the only one by applying
+     LaSalle's theorem \ref{sec:LaSalle Theorem} (check that 
+     $\dot{V}(x) = 0$ only at the equilibrium)
+    \item if the system is not asymptotically stable, find the
+    largest invariant set
+\end{enumerate}
+\textbf{Linearization}:\\
+The steps are the following:
+\begin{enumerate}
+    \item write (if not given) the dynamic model of the system 
+    \begin{itemize}
+        \item for system of masses: \ref{sec:ex: find the dynaic model of a system of masses}
+        \item for a robot: \ref{sec:find the dynamic equation of the robot}
+    \end{itemize}
+    \item bring to Laplace domain the dynamic model
+    \item prove asymptotic stability of the linearized system
+    with routh criterion 
+\end{enumerate}
+\subsubsection{ex:  Find the unique equilibrium state
+  for the closed-loop system under a given control}
+The steps are the following:
+\begin{enumerate}
+    \item write (if not given) the dynamic model of the system 
+    \begin{itemize}
+        \item for system of masses: \ref{sec:ex: find the dynaic model of a system of masses}
+        \item for a robot: \ref{sec:find the dynamic equation of the robot}
+    \end{itemize}
+    \item write the control law (if not given). (Note: if you have multiple
+    dynamic equations there might be some conditions on the control law, depending
+    on the relation between the dynamic equations)
+    \item obtain the closed loop system equations (by 
+    equating the right side of the dynamic model(s) to the control law)
+    \item substitute in the closed loop system equations the
+    values of the equlibrium state (the known one, hence $\dot{q}=0$ and 
+    $\ddot{q}=0$)
+    \item solve the system of equations to find the equilibrium state $q_d$
+    \item show global asymptotic stability as in \ref{sec:Lyapunov + LaSalle}
+\end{enumerate}from step 4
+
+\section{Which control law?}
+If asked to design a control law without direct request of a specific method, you can use the following criteria
+to choose the correct one:
+\begin{itemize}
+\item to achieve \textbf{global exponential stabilization} of 
+a state with \textbf{decoupled transient evolutions
+ of the position error} $\rightarrow$ y feedback linearization control in the joint space
+ \item to achieve \textbf{global asymptotic stabilization} of a state
+ , \textbf{without knowledge of the robot
+ inertia matrix} $\rightarrow$ a PD control with gravity
+ cancellation or iterative gravity cancellation
+ \item to achieve \textbf{exponential stabilization of the end-effector
+  position} $p=p_d$ up
+ to kinematic singularities $\rightarrow$ feedback linearization
+  control in the Cartesian space
+  \item \textbf{global asymptotic stabilization} of a state for an 
+  \textbf{underactuated robot} $\rightarrow$ an approximate
+   feedback linearization control
+\end{itemize}
+\section{PD control}
+The \textbf{PD control} is a control scheme that uses the
+proportional and derivative terms of the error to compute the
+control input.\\
+The goal is asymptotic stability of the closed-loop system:\\
+$q=q_d$ and $\dot{q}=0$\\
+the \textbf{Control law} is given by:
+\begin{equation}
+    u = K_p(q_d-q) + K_d(-\dot{q})
+\end{equation}
+where $K_p$ and $K_d$ are the proportional and derivative gains.\\
+\subsubsection{Th.1}
+In the absence of gravity tha robot state $(q_d,0)$ under the given 
+PD joint control law is globally asymptotically stable.
+\subsection{PD control with gravity compensation}
+$g(q)$ in a robot is the gravity term, and is bounded as follows:
+\begin{equation}
+    ||\frac{\partial g}{\partial q}|| \leq \alpha
+\end{equation}
+\textbf{Note:} gravity term is bounded only if:
+\begin{itemize}
+    \item the robot has all revolute joints
+    \item the robot has both types of joints but no prismatic variable in g(q)
+    \item all prismatic joints have limited ranges
+\end{itemize}
+consequently:
+\begin{equation}
+    ||g(q)-g(q_d)|| \leq \alpha ||q-q_d||
+\end{equation}
+the \textbf{Control law} is given by:
+\begin{equation}
+    u = K_p(q_d-q) - K_d\dot{q} + g(q_d)
+\end{equation}
+\textbf{Note:} if a viscous friction $-F_v\dot{q}$ is present,
+ the term $-K_d\dot{q}$ can be omitted.\\
+\subsubsection{Th.2}
+If $K_{P,m} > \alpha$ the state $(q_d,0)$ under the given
+ PD joint control law with gravity compensation is
+  globally asymptotically stable.
+\subsection{approximte gravity compensation}
+the approximate gravity compensation is given by:
+\begin{equation}
+    u = K_p(q_d-q) - K_d(\dot{q}) + \hat{g}(q)
+\end{equation}
+where $\hat{g}(q)$ is an approximation of the gravity term.
+It leeds to a closed loop equilibriuum whose uniqueness 
+is not guaranteed.
+\subsubsection{ex: find the minimum values of the gains for
+ a PD control with gravity compensation}
+The steps are the following:
+\begin{enumerate}
+    \item find the gravity term g(q) for the robot 
+    \item find  the bound $\alpha$ as in \ref{sec:define a tight bound on the norm of the square matrix}
+    \item impose $K_{P,m} > \alpha$
+    \item if we have viscous friction, we can impose $K_{D,m} = 0$
+\end{enumerate}
+\textbf{Note:} the th.2 just gives a sufficient condition, not a
+     necessary one, we can observe the structure of the gravity term 
+     g(q) and for each entry i, we can say that it is sufficient that 
+        $K_{P,i} > 0$ if the i-th entry of the gravity term is: 
+        \begin{itemize}
+        \item constant 
+        \item equal to zero
+        \end{itemize}
+
+
+\section{PID control}
+The \textbf{PID control} is a control scheme that uses the
+proportional, integral and derivative terms of the error to compute the
+control input (adds the integral term to the PD control to eliminate
+the steady-state error).\\
+PID can be used to recover a positio error due to absent or incomplete 
+gravity compensation.\\
+\textbf{It is independent from the robot dynamics}\\
+The \textbf{Control law} is given by:
+\begin{equation}
+    u = K_p(q_d-q) - K_d(\dot{q}) + K_i \int_0^t (q_d-q_\tau)d\tau 
+\end{equation}
+\subsection{Saturated PID control}
+global asymptotic stability is not guaranteed for PID control, but can be
+proven under lower bound assumption on the gains for a 
+non-linear PID law:
+\begin{equation}
+    u = K_p(q_d-q) - K_d(\dot{q}) + K_i \int_0^t \phi(q_d-q_\tau)d\tau
+\end{equation}
+where $\phi$ is a saturation function.\\
+Examples of saturation functions are:
+\begin{itemize}
+    \item $\phi(x) = \begin{cases}
+        \sin x & \text{if } |x| \leq \pi/2\\
+        1 & \text{if } x > \pi/2\\
+        -1 & \text{if } x < -\pi/2
+    \end{cases}$
+    \item $\phi(x) =\tanh x = \frac{e^x-e^{-x}}{e^x+e^{-x}}$
+\end{itemize}
+\section{Iterative Learning for gravity compensation}
+We can use the iterative methood when:
+\begin{itemize}
+    \item the robot has a complex (or unknown) dynamic model
+    \item we don't need high position gain 
+    \item we don't want complex conditions on the gains
+\end{itemize}
+It can be used to derive sufficient conditions for global
+convergence with zero final error.\\
+The \textbf{Control law} at the i-th iteration is given by:
+\begin{equation}
+    u_i = \gamma K_p(q_d-q) - K_d(\dot{q}) + u_{i-1}
+\end{equation}
+where $\gamma$ is the learning gain, $u_{i-1}$ is 
+the feedforward term, $u_0=0$ is the easiest 
+initialization of the feedforward term.\\
+At steady state we have:
+\begin{equation}
+    g(q_i)=\gamma K_p(q_d-q_i) + u_{i-1} = u_i
+\end{equation}
+\subsubsection{Th.3} \label{sec:Th.3}
+If:
+\begin{itemize}
+    \item $\lambda_{min}(K_p) > \alpha$
+    \item $\gamma \geq 2$
+\end{itemize}
+then we are guaranteed that the sequence ${q_0,..,q_i}$ converges
+ to $q_d$ (and $\dot{q}=0$)  for any initial value (global convergence).\\
+\textbf{Note}: the th.3 just gives a sufficient condition, not a
+     necessary one
+
+
+\section{Trajectory tracking control}
+\subsection{Inverse Dynamic control}
+Given a dynamic model of a robot $M(q)\ddot{q} + n(q,\dot{q}) = u$,
+(where n includes also friction and other disturbances) and a 
+twice differentiable desired trajectory $q_d(t)$, we can obtain the desired 
+control input $u_d$ as: \begin{equation}
+    u_d = M(q_d)\ddot{q}_d + n(q_d,\dot{q}_d)
+\end{equation}
+If there are distrubances we need to use a feedback 
+to make the control scheme more robust.\\
+Possible implementations: 
+\begin{itemize}
+    \item \textbf{Offline}: open loop
+    \item \textbf{Online}: closed loop
+\end{itemize}
+There are 2 steps in control deign:
+\begin{enumerate}
+    \item comcompensation (feedforward) or 
+    cancellation (feedback) of nonlinearities
+    \item synthesis of a linear control law stabilizing
+    the trajectory error to zero
+\end{enumerate}
+\subsection{Trajectory controllers}
+Possible trajectory controllers are:
+\begin{itemize}
+    \item inverse dynamic compensation (FFW) + PD control 
+    \begin{equation}
+    u = \hat{u}_d+ K_P(q_d-q)+K_D(\dot{q}_d-\dot{q})    \end{equation}
+
+    \item inverse dynamic compensation (FFW) +variable PD
+    \begin{equation}
+    u = \hat{u}_d+ \hat{M}(q_d)[K_P(q_d-q)+K_D(\dot{q}_d-\dot{q})]    \end{equation}
+   or
+    \item feedback linearization + PD + FFW = \textbf{computed torque}
+    \begin{equation}
+    u = \hat{M}(q)[\ddot{q}+K_P(q_d-q)+K_D(\dot{q}_d-\dot{q})] + \hat{n}(q,\dot{q})   \end{equation}
+    \item feedback linearization + PID + FFW
+    \begin{equation}
+    u = \hat{M}(q)[\ddot{q}+K_P(q_d-q)+K_D(\dot{q}_d-\dot{q})+K_I\int_0^t(q_d-q_\tau)d\tau] + \hat{n}(q,\dot{q})   \end{equation}
+\end{itemize}
+\textbf{Note:}the global stabilization for the last two laws is obtained with
+$K_P > 0$ and $K_D > 0 $
+\subsubsection{Feedback linearization}
+In nominal conditions ($\hat{M}=M$ and $\hat{n}=n$) we have:
+\begin{equation}
+    u = M(q)\ddot{q}+ n(q,\dot{q}) = M(q)a + n(q,\dot{q})
+\end{equation}
+So the global asymptotic stabilization of tracking error is:
+\begin{equation}
+    a = \ddot{q}_d + K_P(q_d-q) + K_D(\dot{q}_d-\dot{q})
+\end{equation}
+under feedback linearization control, the robot 
+has a dynamic behavior that is
+invariant, linear and decoupled in its whole state space
+($\forall(q,\dot{q})$).\\
+\textbf{linearity:} error tends to 0 exponentially.\\
+\textbf{decoupling:} each joint coordinate evolves independently
+from the others.
+\subsubsection{remarks}
+\begin{itemize}
+    \item desired robot trajectory can be generated from 
+    Cartesian data $p_d(0), \dot{p}_d(0), \ddot{p}_d(0)$
+    \item real-time computation with Newton-Euler algorithm
+\end{itemize}
+\subsection{Alternaive global trajectory controller}
+\begin{equation}
+u = M(q)\ddot{q} + S(q,\dot{q})\dot{q} + g(q) + F_V\dot{q} _d + K_Pe + K_D\dot{e}
+\end{equation}
+gives a global asymptotic stabilization of the tracking error,
+no cancellation of nonlinearities and no linear and decoupled behaviour.
+\subsection{Regulation special case}
+The regulation is a special case of trajectory tracking where $q_d$ 
+is constant.\\
+the feedback linearization control law is given by:
+\begin{equation}
+    u = M(q)[K_P(q_d-q) - K_D(\dot{q})] + c(q,\dot{q}) + g(q)
+\end{equation}
+this is a solution to the regulation problem with
+exponential stability.\\
+the alternative global trajectory controller is given by:
+\begin{equation}
+    u = K_P(q_d-q) - K_D(\dot{q}) + g(q) 
+\end{equation}
+(it's a simple PD control with gravity compensation)
+\subsection{Repetitive motion tasks}
+The repetitive motion tasks are tasks that are executed
+repeatedly in a finite time.\\
+The robot is reinitialized at the initial state at the beginning
+of each trial.\\
+the control law is made of a non-model based part (often, a
+decentralized PD law) + a time-varying feedforward which is
+updated before every trial\\
+ the update of the feedforward term is done by:
+\begin{equation}
+    v_{k+1}(s) = \alpha (s) u'_k(s) + \beta (s) v_k(s)
+\end{equation}
+if a contraction condition can be enforced 
+\begin{equation}
+    ||\beta(s)-\alpha(s)W(s)|| < 1
+\end{equation}
+then the control law is globally asymptotically stable.\\
+\textbf{Note:} if the choice $\beta = 1$ satisfies the contraction
+condition, then we coverge with 0 tracking error. If $\alpha(s)=1/W(s)$
+then we converge in 1 iteration.
+\subsection{Application to robots}
+robot equation:
+\begin{equation}
+    u = [B_m+M(q)]\ddot{q} + [F_v+S(q,\dot{q})]\dot{q} + g(q)
+\end{equation}
+control law (pre-learning):
+\begin{equation}
+    u = K_P(q_d-q) + K_D(\dot{q}_d-\dot{q}) + \hat{g}(q)
+\end{equation}
+learning filters:
+\begin{equation}
+    W_i=\frac{q_i(s)}{q_{di}(s)}=\frac{K_{Pi}+K_{Di}s}{\hat{B}_{mi}s^2+(\hat{F}_{vi}+K_{Di})s+K_{Pi}}
+\end{equation}
+initializaton of feedforward term (using best estimate):
+\begin{equation}
+    v_1=[\hat{B}_m+\hat{M}(q)]\ddot{q}_d + [\hat{F}_v+\hat{S}(q,\dot{q})]\dot{q}_d + \hat{g}(q)
+\end{equation}
+\subsubsection{Control with approximate feedback linearization}
+dynamic model, its nominal part and (unstructured) uncertainty:
+\begin{equation}
+    M(q)\ddot{q} + n(q,\dot{q}) = \tau 
+\end{equation}
+\begin{equation}
+    M = \hat{M} + \Delta M 
+\end{equation}
+\begin{equation}
+    n = \hat{n} + \Delta n
+\end{equation}
+model based feedback linearization:
+\begin{equation}
+    \tau_{fl} = \hat{M}(q)a + \hat{n}(q,\dot{q}) 
+\end{equation}
+resulting closed-loop dynamics with perturbation:
+\begin{equation}
+\ddot{q}=a + \delta(q,\dot{q},a)
+\end{equation}
+\begin{equation}
+    \delta = (M^{-1}\hat{M}-I)a + M^{-1}(\hat{n}-n)
+    \end{equation}
+control law for tracking $q_d(t)$ (PD with feed forward + regressor $\epsilon_k$):
+\begin{equation}
+    a= u_k + \epsilon_k = K_P(q_d-q) + K_D(\dot{q}_d-\dot{q}) + \ddot{q}_d + \epsilon_k
+\end{equation}
+the regressor term is obtained with a Gaussian Process (GP) model:
+\begin{equation}
+    \epsilon_k \circ \mathcal{N}(\mu(\hat{X_k},\sigma^2(\hat{X_k})))
+\end{equation}
+\subsubsection{ex: achieve global exponential stabilization with 
+decoupled transient evolution of positions errors e(q,t)}
+The steps are the following:
+\begin{itemize}
+\item write the feedback linearization control law as: \begin{equation}
+u=M[-K_D\dot{q}+K_P(q_d-q)]+c(q,\dot{q})+g(q)
+\end{equation}
+\item obtain the desired error transient by choosing suitable gains 
+$K_D$ and $K_P$ that satisfy the following equation: \begin{equation}
+    \ddot{e}_i+K_{D,i}\dot{e}_i+K_{P,i}e_i=0
+\end{equation}
+\item obtain $\dot{e}$ and $\ddot{e}$ from the given e equation by differentiation 
+and substitute them in the previous formula.
+\item solve by principle of polynomial identity for $K_D$s and $K_P$s
+\end{itemize}
+\subsubsection{ex: solve the inverse dynamics for a desired trajectory $q_d(t)$}
+The steps are the following:
+\begin{enumerate}
+    \item write the dynamic model of the robot
+    \item substitute the desired trajectory in the dynamic model
+    \item solve the equation for tau
+\end{enumerate}
+Note: if you have more than one dynamic equation, you have to
+substitue the desired trajectory in all the equations,
+obtain the values of the other parameter (say $\theta$) and its derivatives
+in terms of the desired trajectory and then substitute them in the
+equation for $\tau$.
+
+
+
+\section{Adaptive control}
+We need adaptation in robot motion when we have:
+\begin{itemize}
+    \item poor knowledge of inertial payload
+    \item large uncertainties in robot dynamics parameters (
+        $m_i, I_i, r_{ci}$)
+\end{itemize}
+we assume that DH parameters are known (including link lengths).\\
+main methodologies:
+\begin{itemize}
+    \item \textbf{linear parametrization} of robot dynamics 
+    \item \textbf{nonlinear control law} of dynamic type (nonlinear control
+    based on feedback linearization) 
+\end{itemize}
+\subsection{Adaptive Control Law}
+first adaptive method: on-line modification with reference velocity.\\
+$\dot{q}_r = \dot{q}_d + \Lambda(q_d - q)$ where typically $\Lambda=K_D^{-1}K_P$.\\
+\textbf{Adaptive control law}:
+\begin{equation}
+    u = M(q)\ddot{q}_r + S(q,\dot{q})\dot{q} + g(q) + F_V\dot{q}_r + K_P(q_d-q) + K_D(\dot{q}_d-\dot{q})
+\end{equation}
+with adaptation law:
+\begin{equation}
+    \dot{\hat{a}} = \Gamma Y^T(q,\dot{q},\dot{q}_r,\ddot{q}_r)(\dot{q}_r-\dot{q})
+\end{equation}
+\subsection{Th.4}
+The introduced adaptive controller makes the tracking error along
+the desired trajectory globally asymptotically stable
+\subsubsection{properties}
+If the desired trajectory $q_d(t)$ is persistently exciting, then
+the estimates of the dynamic parameters converge to the true values.\\
+condition of persistent excitation:
+\begin{itemize}
+\item for linear systems: \# of frequency components in the desired trajectory
+should be at least twice as large as \# of unknown coefficients
+\item for nonlinear systems: the condition can be checked only a posteriori
+(a squared motion integral should always be positive bounded from below)
+\end{itemize}
+\subsection{Adaptive regulation}\label{sec:Adaptive regulation}
+adaptation in case $q_d$ is constant:\begin{itemize}
+\item the adaptive control law remains the same:
+
+\begin{equation}
+    u = \hat{M}(q)\ddot{q}_r + \hat{S}(q,\dot{q})\dot{q}_r + \hat{g}(q) + \hat{F}_V\dot{q}_r + K_P(q_d-q) + K_D(\dot{q}_d-\dot{q})
+\end{equation}
+and adaptation law:
+\begin{equation}
+\dot{\hat{a}} = \Gamma Y^T (q,\dot{q},\dot{q}_r,\ddot{q})(\dot{q}_r-\dot{q})
+\end{equation}
+\item if we have an adaptive version of the trajectory tracking 
+controller instead it would only need the adaptation on 
+the gravity term.
+\begin{equation}
+    u = \hat{M}(q)\ddot{q}_d + \hat{S}(q,\dot{q})\dot{q}_d + \hat{g}(q) + \hat{F}_V\dot{q}_d + K_P(q_d-q) + K_D(\dot{q}_d-\dot{q})
+\end{equation}
+and adaptation law:
+\begin{equation}
+    g(q) = G(q)a_g
+\end{equation}
+\begin{equation}\label{eq:adaptive regulation gravity}
+    u = G(q)\hat{a}_g + K_P(q_d-q) + K_D(\dot{q})
+\end{equation}
+\begin{equation}
+\dot{\hat{a}}_g= \gamma G^T(q)(\frac{2e}{1+2||e||^2}-\beta \dot{q})
+\end{equation}
+where $e = q_d - q$ and $\gamma$ and $\beta$ are positive constants
+\end{itemize}
+\subsubsection{ex: how many states has the adaptive dynamic controller?}
+the number of states is the number of coefficients 
+in $a$. Not that if you have also a separated 
+gravity term, you have to consider also the
+coefficients of the gravity term (number of states = $ |a_m| + |a_g|$)
+\subsubsection{ex: find the adaptive control law that obtains global 
+asymptotic tracking of a trajectory $q_d(t)$}
+The steps are the following:
+\begin{enumerate}
+    \item write the dynamic model of the robot and 
+    obtain the linear parametrization Y
+    \item write the control law and adaptation law as in \ref{sec:Adaptive regulation}
+    (removing eventually not-necessary terms)
+    \item write the formula for $q_r$ as $\dot{q}_r = \dot{q}_d + \Lambda(q_d - q)$
+    where $\Lambda=K_D^{-1}K_P$
+\end{enumerate}
+\subsubsection{ex: find the reduced states adaptive control law that 
+obtains global 
+asymptotic tracking of a trajectory $q_d(t)$ assuming 
+dynamic coefficients $a_m$ are known}
+The steps are the following:
+\begin{enumerate}
+    \item write the gravity term as $g(q) = G(q)a_g$
+    \item write the control law and adaptation law as in \ref{eq:adaptive regulation gravity}
+    \item write the formula for $q_r$ as $\dot{q}_r = \dot{q}_d + \Lambda(q_d - q)$
+    where $\Lambda=K_D^{-1}K_P$
+\end{enumerate}
+
+
+
+
+
+\section{Cartesian control}
+We use the Cartesian control when the goal is the 
+asymptotic stabilization of the end-effector position:\\
+$p=p_d, \dot{q}=\dot{q}_d=0 \leftrightarrow \dot{p}=\dot{p}_d=0$\\
+Note:\\
+if $m= n$, then $\dot{q} \implies \dot{p} = 0$\\
+if $m<n$ then the goal is not uniquely associated
+to a complete robot state.\\
+The \textbf{Cartesian regulation control law} is given by:
+\begin{equation}\label{eq:Cartesian regulation control law}
+    u = J^T(q)K_P(p_d-p) - K_D\dot{q}+g(q)
+\end{equation}
+\subsection{Th.5}
+under the control law in \ref{eq:Cartesian regulation control law} the 
+robot state will converge asymptotically to the set 
+$A = \{\dot{q}=0,g:K_p(p_d-f(q)) \in N(J^T(q))\}$
+\subsection{corollary}
+for a given initial state $(q(0),\dot{q}(0))$, if the robot does not
+encounter any singularity of $J^T(q)$during its motion, then there 
+is asymptotic
+stabilization to one single state or to a set of
+states such that $e_p=0, \dot{q}=0$
+\subsection{Cartesian control variant}
+Control law (PD control plus gravity cancellation in joint space):
+\begin{equation}
+    u = J^T(q)[K_P(p_d-p) - K_D\dot{p}] + g(q)
+\end{equation}
+\subsection{Feedback linearization in Cartesian space}
+algorithm: differentiate the output(s) as many times as needed
+up to the appearance of (at least one of) the input torque(s) u ,
+then verify if it is possible to solve for the input.
+\begin{itemize}
+\item $y=f(q)$
+\item $\dot{y}=J(q)\dot{q}$
+\item $\ddot{y}=J(q)\ddot{q}+ \dot{J}(q)\dot{q}= J(q)M(q)^{-1}(u-c(q,\dot{q})-g(q))+\dot{J}(q)\dot{q}$
+\end{itemize}
+where $\ddot{q}$ is taken from the dynamic model
+\subsubsection{Th.6}
+Theorem
+for a non-redundant robot, it is possible to exactly linearize and
+decouple the dynamic behavior at the Cartesian level if and only if
+$\det(J(q)) \neq 0$ 
+\subsubsection{linearization in right coordinates}
+from the control law
+\begin{equation}
+u = M(q)J^{-1}(q)a + c(q,\dot{q}) + g(q) - M(q)J^-1(q)\dot{J}(q)\dot{q}
+\end{equation}
+ we can derive:
+\begin{equation}
+\ddot{y}=\ddot{p}= J(q)M^{-1}(u-c(q,\dot{q})-g(q))+\dot{J}(q)\dot{q}=a
+\end{equation}
+from the closed-loop equation in joint space we obtain:
+\begin{equation}
+    \ddot{q}=J^{-1}(q)a-J^{-1}(q)\dot{J}(q)\dot{q}
+\end{equation}
+Note: the design of a Cartesian trajectory tracking control is completed
+by setting:
+\begin{equation}
+a_i=\ddot{p}_{di}+K_{Di}(\dot{p}_{di}-\dot{p}_i)+K_{Pi}(p_{di}-p_i)
+\end{equation}
+Note: for $p_d$ constant, the control law is:
+\begin{equation}
+    u = M(q)J^{-1}(q)[K_Pe_P-K_DJ(q)\dot{q}]+c(q,\dot{q})+g(q) - M(q)J^-1(q)\dot{J}(q)\dot{q}
+\end{equation}
+
+\subsubsection{ex: find a robot configuration q and consequent p (that is not 
+$p_d$) such that the robot will not move when at rest in q}
+The steps are the following:
+\begin{enumerate}
+    \item write the Cartesian control law as in \ref{eq:Cartesian regulation control law}
+    \item find the singularities of the Jacobian
+    \item substitute the values of the singularities in the forward
+    kinematics to find the corresponding end effector position
+    \item substitute the value of q, $\dot{q}=0$ in the control law 
+    and obtain its reduced form
+    \item equate the reduced form to the model dynamics 
+    (where you substitute q and $\dot{q}$ 
+    and 
+    prove that $\ddot{p}=0$
+\end{enumerate}
+
+
+\section{Robot interaction with the environment}
+\subsection{Which type of control law?}
+If asked to design a control law without direct request of a
+ specific method, you can use the following criteria:
+\begin{itemize}
+    \item if you have knowledge of the specific geometry of the
+    environment and the robot is in contact with it, you can use
+    a hybrid force/velocity control
+    \item if you have no knowledge of the specific geometry of the
+    environment and the robot is in contact with it, you can use
+    impedance control
+\end{itemize}
+\subsection{Robot compliance}
+Robot compliance can be:
+\begin{itemize}
+    \item \textbf{passive}: the robot is compliant by structure
+    \item \textbf{active}: the robot is able to control the compliance
+    with \begin{itemize}
+    \item admittance control
+    \item impedance control
+    \item stiffness/compliance control
+    \item hybrid control
+    \end{itemize}
+\end{itemize}
+in all cases for physical interaction tasks, the desired motion
+specification and execution should be integrated with
+complementary data for the desired force.
+\subsection{Ideally constrained contact}
+If geometry is known hybrid force/velocity control is the best choice.
+In the ideal case, with a infinitely stiff environmente,
+we can assume $f_e = - f_r$ where $f_e$ is the force exerted by the
+environment and $f_r$ is the force exerted by the robot (normally wrt env)
+
+\subsection{Constrained robot dynamics}
+suppose that the task variables are subject to m < n (bilateral)
+geometric constraints in the general k(r)=0 and define \begin{equation}
+h(q)=k(f(q))=0
+\end{equation}
+the constrained robot dynamics can be derived using again the
+Lagrange formalism, by defining an augmented Lagrangian as:
+\begin{equation}
+    L(q,\dot{q},\lambda)=T(q,\dot{q})-U(q)-\lambda^T h(q)
+\end{equation}
+where the Lagrange multipliers $\lambda$ (a m-dimensional vector) can
+be interpreted as the generalized forces that arise at the contact
+when attempting to violate the constraints.\\
+n applying the Euler-Lagrange equations we obtain 
+the constrained robot dynamics as:
+\begin{equation}
+    M(q)\ddot{q} + c(q,\dot{q}) + g(q) = u +A^T(q)\lambda
+\end{equation}
+where A(q) is the Jacobian of the constraints h(q) $A(q)=\frac{\partial h}{\partial q}$\\
+We can obtain the value of $\lambda$ by doing the following:
+\begin{itemize}
+\item differentiate the constraint $h(q)=0$ with respect to time (twice),
+obtain $\ddot{h}=A(q)\ddot{q}+\dot{A}(q)\dot{q}=0$
+\item substitute the value of $\ddot{q}$ from the constrained robot dynamics
+\item obtain the value of $\lambda$ by solving the equation 
+\begin{equation}
+    \lambda = (AM^{-1}A^T)^{-1}(AM^{-1}(c+g-u)-\dot{A}\dot{q})
+\end{equation}
+The final constrained dynamic model can be rewritten as:
+\begin{equation}
+    M(q)\ddot{q} = [I -A^T(q)(A_M^{\#}(q))^T](u-c(q,\dot{q})-g)-M(q)A_M^{\#}(q)\dot{A}(q)\dot{q}
+\end{equation}
+where $A_M^{\#}(q)$ is the Moore-Penrose pseudo-inverse of A(q):\\
+$A_M^{\#}(q)=M(q)^{-1}A^T(q)(A(q)M^{-1}(q)A^T(q))^{-1}$
+\end{itemize}
+\subsection{Reduced robot dynamics}
+by imposing m constraints $h(q)=0$ on the n generalized coordinates q,
+it is also possible to reduce the description of the constrained robot
+dynamics to a n-m dimensional configuration space.\\
+Start from a constarint matrix A(q) and select D(q) such that
+\begin{equation}
+\begin{bmatrix}
+    A(q)\\
+    D(q)
+\end{bmatrix}
+\end{equation}
+
+in a nonsingular matrix.
+And :
+\begin{equation}
+    \begin{bmatrix}
+        A(q)\\
+        D(q)
+    \end{bmatrix}^{-1}= \begin{bmatrix}
+        E(q) & F(q)
+    \end{bmatrix}
+    \end{equation}
+then we define the vector of pseudovelocities v as:
+\begin{equation}
+    v = D(q)\dot{q}
+\end{equation}
+from that we can obtain $\dot{q}$ and $\ddot{q}$ as:
+\begin{equation}
+    \dot{q} = F(q)v
+\end{equation}
+\begin{equation}
+    \ddot{q} = F(q)\dot{v}  - (E(q)\dot{A}(q) + F(q)\dot{D}(q))F(q)v
+\end{equation}
+from that we can rewrite the constrained robot dynamics as:
+\begin{equation}
+   (F^TMF)\dot{v} = F^T(u-c(q,\dot{q})-g + M(E\dot{A}+F\dot{D})Fv)
+\end{equation}
+and the lagrangian multipliers become:
+\begin{equation}
+    \lambda = E^T(MF\dot{v}-M(E\dot{A}+F\dot{D})Fv + c + g -u)
+\end{equation}
+
+\section{Impedance control}
+The impedance control imposes a desired dynamic 
+behavior to the interaction between
+robot end-effector and environment specified through a
+complete set of mass-spring-damper equations.\\
+The dynamic model of a robot in ontact is given by:
+\begin{equation}
+M(q)\ddot{q} + c(q,\dot{q})\dot{q} + g(q) = u + J_r^T(q)F_r
+\end{equation}
+where $J_r(q)$ is the analyitic jacobian (from forward kinematics)
+and $F_r=T_r^{-T}(\psi)F$ .\\
+\textbf{Note}: in case of constraint forces instead of contact
+ forces we can rewrite the equation as:
+\begin{equation}
+    M(q)\ddot{q} + c(q,\dot{q})\dot{q} + g(q) = u + A^T(q)\lambda
+\end{equation}
+where $A(q)$ is the Jacobian of the constraints and $\lambda$ is 
+the reaction force intenity due to the constraints.
+\subsection{Dynamic model in Cartesian coordinates}
+The dynamic model in Cartesian coordinates is given by:
+\begin{equation}\label{eq:dynamic model in Cartesian coordinates}
+    M_r(q)\ddot{r} + S_r(q,\dot{q})\dot{r} + g_r(q) = J_r^{-T}(q)u+F_r
+\end{equation}
+where:
+\begin{itemize}
+    \item $M_r(q)=J_r^{-T}(q)M(q)J_r^{-1}(q)$
+    \item $S_r(q,\dot{q})=J_r^{-T}(q)S(q,\dot{q})J_r^{-1}(q) - M_r(q)\dot{J}_r(q)J_r^{-1}(q)$
+    \item $g_r(q)=J_r^{-T}(q)g(q)$
+\end{itemize}
+\subsection{Design of the control law}
+The design happens in two steps:
+\begin{enumerate}
+\item feedback linearization in the Cartesian space
+ (with force measure) \begin{equation}
+ u=J_r^T(q)[M_r(q)a+ S_r(q,\dot{q})\dot{r} + g_r(q) - F_r]
+ \end{equation}
+\item imposition of a dynamic impedance model \begin{equation}
+M_m(\ddot{r}-\ddot{r}_d) + D_m(\dot{r}-\dot{r}_d) + K_m(r-r_d) = F_r
+\end{equation}
+where $M_m, D_m, K_m$ are the desired mass, damping and stiffness.\\
+that is realized by choosing: \begin{equation}
+a = \ddot{r}_d + M_m^{-1}[D_m(\dot{r}_d-\dot{r})+K_m(r_d-r)+F_r]
+\end{equation}
+\end{enumerate}
+\subsubsection{Control law in joint coordinates}
+\begin{equation}
+    \begin{split}
+u = & M(q)J_r^{-1}(q){\ddot{r}_d-\dot{J}_r(q)\dot{q}+M_m^{-1}[D_m(\dot{r}_d-r)+K_m(r_d-r)]}+ \\
+&S(q,\dot{q})\dot{q}+g(q)+J_r^T(q)[M_r(q)M_m^{-1}-I]F_r
+    \end{split}
+\end{equation}
+\textbf{Note}: we can choose the parameter to have a desired dynamic:
+\begin{itemize}
+    \item large $M_m$  and small $K_m$ when we want low contact forces
+    \item small $M_m$ and large $K_m$ when we want good tracking of desired 
+    motion trajectory
+    \item damping coefficients $D_m$ are used then to shape transient behaviors
+\end{itemize}
+\subsubsection{Simplifications}
+if we assume $M_m = M_r$ the control law becomes:
+\begin{equation}
+u=M(q)J_r^{-1}(q){\ddot{r}_d-\dot{J}_r(q)\dot{q}}+S(q,\dot{q})\dot{q}+g(q)+J_r^T(q)[
+    D_m(\dot{r}_d-\dot{r})+K_m(r_d-r)]
+\end{equation}
+this is a pure motion control law applied also during interaction,
+but designed so as to keep limited contact forces
+ at the end-effector leave.\\
+\textbf{Note}:  if the impedance model (now, nonlinear) is still supposed to
+represent a real mechanical system, then in correspondence to a desired
+non-constant inertia there should be Coriolis and centrifugal terms so
+the cotrol law becomes: \begin{equation}
+u=M(q)J_r^{-1}(q){\ddot{r}_d-\dot{J}_r(q)J_r^{-1}(q)\dot{r}_d}+
+S(q,\dot{q})J_r^{-1}(q)\dot{r}_d+g(q)+J_r^T(q)[
+    D_m(\dot{r}_d-\dot{r})+K_m(r_d-r)]
+\end{equation}
+which guarantees convergence to zero tracking error wher $F_r=0$.\\
+We have a further simplification if $r_d$ is constant the control law becomes:
+\begin{equation}
+u=g(q)+J_r^T(q)[-D_m\dot{r}_d+K_m(r_d-r)]
+\end{equation}
+\subsection{General case $F_r \neq 0$}
+For analysis we model the environment as an elastic element: 
+\begin{equation}
+F_r=K_e(r_e-r)
+\end{equation}
+wher $\dot{r}=\ddot{r}=0$ a closed loop system equilibrium is given by:
+\begin{equation}
+K_m(r_d-r)+K_e(r_e-r)
+\end{equation}
+which has unique solution
+\begin{equation}
+r=(K_m+K_e)^{-1}K_mr_d+K_er_e)=r_E
+\end{equation}
+\subsubsection{Equivalence with RCC device}
+TH:\\
+if $(r_d-r) \simeq J_r(q)(q_d-q)$ and g(q)=0 and $D_m=0$\\
+then the control law is equivalent to the one of a RCC device:\\
+\begin{equation}
+    u = J_r^T(q)K_mJ_r(q)(q_d-q)=K(q)(q_d-q)
+\end{equation}
+
+\subsubsection{ex: check that the tip acceleration
+ has the same direction of any force F 
+in the plane applied to the tip of the robot}
+The steps are the following:
+\begin{enumerate}
+    \item write the dynamic model in Cartesian coordinates as in \ref{eq:dynamic model in Cartesian coordinates}
+    \item isolate the acceleration $\ddot{r}$ from the dynamic model
+    \item if the acceleration is solely dependent on the force F,
+     then the direction of the acceleration is the same as 
+     the direction of F
+\end{enumerate}
+\subsubsection{ex: write the relation between p an q given the
+odel dynamics in joint space}\begin{itemize}
+\item start from the relation $\dot{p}=J(q)\dot{q}$
+\item by duality obtain $\tau_q=J^T(q)\tau_p$
+\item substitute the value of $\tau_q$ in the dynamic model,
+and $\tau_p$ as $(\tau_1 \dots \tau_n)^T$ and obtain 
+the value of $J^T(q)$
+\item use it to find p
+\end{itemize}
+\subsubsection{ex: design an impedance control law for a robot}\label{sec:ex: design an impedance control law for a robot}
+The steps are the following:
+\begin{enumerate}
+    \item write the dynamic model in Cartesian coordinates
+    \item write the impedance model 
+    \item check if the appartent cartesian matrix $M_m$ (the one of the 
+    impedance model) is equal to the natural inertia matrix $M_r$ 
+    (this could be specified in the text or be a consequence of the absence of 
+    force/torque sensors)
+    \item if so, substitute $f_r$ obtained from the impeance model inside the 
+    dynamic model
+    \item from the dynamic model, isolate and obtain u (you have obtained the control law)
+\end{enumerate}
+
+\subsubsection{ex: find the equilibrium point for impedance control}
+the steps are the following:
+\begin{itemize}
+\item write the impedance control law at steady-state ($\dot{r}=\ddot{r}=0$)
+\item isolate and find r (equilibrium point)
+\item write the control law as in \ref{sec:ex: design an impedance control law for a robot}
+and substitute the values of steady state ($\dot{r}=\ddot{r}=0$)
+\item compute u with the r previously obtained: $u_E$
+\end{itemize}
+
+
+
+
+
+
+
+
+
+
+
+\section{Hybrid control}
+The hybrid control law is designed in ideal conditions, but now
+unconstrained directions of motion and constrained force directions
+are defined in a more direct way using a task frame formalism.\\
+All non-ideal conditions (compliant surfaces, friction at the contact,
+errors in contact surface orientation) are handled explicitly in the
+control scheme by a geometric filtering of the measured quantities.
+\subsection{Natural and artificial constraints}
+\subsubsection{Natural constraints}
+In ideal conditions we can define inside the task space:
+\begin{itemize}
+\item \textbf{end-effector motion} ($v,\omega$) is proihbited 
+in $6-k$ directions
+\item \textbf{reaction forces/torques} ($f,\mu$) are absent 
+in k directions
+\end{itemize}
+\subsubsection{Artificial constraints}
+The \textbf{artificial constraints} can be specified by:
+\begin{itemize}
+    \item \textbf{end-effector velocities} ($v,\omega$) 
+    around k directions where motion can occur 
+    \item \textbf{contact forces/torques} ($f,\mu$)
+    6-k directions where admissible env reaction can occur
+\end{itemize}
+\subsection{Hybrid force/velocity control}
+The general parametrization of hybrid task can be 
+described by:\begin{enumerate}
+    \item robot-environment contact type:
+    \begin{equation}
+        \begin{bmatrix}
+            v \\
+            \omega
+        \end{bmatrix}
+        =T(s)\dot{s}
+    \end{equation}
+    \begin{equation}
+        \begin{bmatrix}
+            f \\
+            \mu
+        \end{bmatrix}
+        =Y(s)\lambda
+    \end{equation}
+    \item robot dynamics: \begin{equation} \label{eq:robot dynamics in hybrid control}
+    M(q)\ddot{q}+S(q,\dot{q})+g(q)=u+J^T(q)[f,\mu]^T
+    \end{equation}
+    \item robot kinematics:\begin{equation}
+    \begin{bmatrix}
+        v\\
+        \omega
+    \end{bmatrix}=J(q)\dot{q}
+    \end{equation}
+\end{enumerate}
+The \textbf{control objective} is to impose a desired task evolution 
+to the parameters s of motion and $\lambda$ of force.\\
+The control law is designed in two steps:
+\begin{enumerate}
+    \item extract linearization and decoupling in the task frame by feedback
+            \begin{equation}
+            u=(MJ^{-1}T, -J^TY)(a_s, a_{\lambda})^T + MJ^{-1}(\dot{T}\dot{s}-\dot{J}\dot{q}) + S\dot{q} +g
+            \end{equation}
+    \item (linear) design of  $a_s$ and $a_{\lambda}$ so as to impose 
+the desired dynamic
+behavior to the errors $e_s = s_d - s$ and $e_{\lambda} = \lambda_d - \lambda$
+\begin{equation}
+a_s=\ddot{s}_d+ K_D(\dot{s}_d-\dot{s})+K_P(s_d-s)
+\end{equation}
+\begin{equation}
+a_{\lambda}=\lambda_d + K_I \int(\lambda_d-\lambda)dt
+\end{equation}
+where values for s, $\dot{s}$ are extracted from measures 
+of q and $\dot{q}$ equating the descriptions
+of the end-effector pose and velocity “from the robot side”
+ (direct and
+differential kinematics) $\dot{s}=T^{\#}J(q)\dot{q}$ and “from the environment side” while 
+$\lambda$ is obained from 
+force/torque measures at end effector $\lambda=Y^{\#}(f,m)^T$
+\end{enumerate}
+\textbf{Note}: we assume n=m and J(q) out of singularity
+\subsection{Force control via impedance model}
+in a force-controlled direction of the hybrid task space, when the contact
+stiffness is limited,
+one may use impedance model ideas to 
+explicitly control the contact force.\\
+The impedance model is chosen as:\begin{equation}
+m_m\ddot{x}+d_m\dot{x}+k_s(x-x_d)=f_d
+\end{equation}
+after a feedback linearization the command $a_x$ is designed as:
+\begin{equation}
+a_x =(1/m_m)[(f_d-f_s)-d_m\dot{x}]
+\end{equation}
+\subsubsection{sources of inconsistency}
+the main sources of inconsistency in force and velocity measurements can be:
+\begin{itemize}
+    \item presence of friction at the contact 
+    \item compiance in the robust structure and/or at the contacy
+    \item uncertainty on environment geometry at the contact
+\end{itemize}
+\subsection{Estimation of unknown surface}
+\begin{itemize}
+    \item normal = nominal direction of measured force
+    \item tangent = nominal direction of measured velocity
+    \item  tangent direction and friction angle can also be extimated with 
+    recursive least square method
+\end{itemize}
+
+\subsubsection{ex: design the natural and 
+artificial constraints for a hybrid control law. How many control loops?
+How many degres of freedom are needed?}
+The steps are the following:
+\begin{enumerate}
+\item design the task frame (usually, allign the z 
+axis with the end effector)
+\item start by desgning the natural constraints: \begin{itemize}
+    \item define the velocities (linear and angular) that are
+        prohibited in the task space (6-k)
+    \item define the forces/torques that are absent
+     in the task space (k)
+\end{itemize}
+\item design the artificial constraints: \begin{itemize}
+    \item define the velocities (linear and angular) that are
+        allowed in the task space (k)
+    \item define the forces/torques that are present
+     in the task space (6-k)
+\end{itemize}
+\item The number of control loops is equal to the number of
+artificial constraints (6, but specifiically k 
+control loops on motion components and 6-k on force components)
+\item The number of degrees of freedom needed is one per 
+control loop
+\end{enumerate}
+
+\subsubsection{ex: design a hybrid control law for a robot}
+The steps are the following:
+\begin{enumerate}
+    \item write the control law as in \ref{eq:robot dynamics in hybrid control}
+    $M(q)\ddot{q}+S(q,\dot{q})\dot{q}+g(q)=u+J^T(q)u_f$
+    where $u_f$ is the vector of forces/torques expressed 
+    in the original frame (same as the model)
+    \item compute the rotation matrix R from origin frame
+     to contact plane 
+    frame 
+    \item rewrite the dynamic model in the contact plane frame
+    by multiplying thhe elements of the model by R
+    $R^TM(q)R\ddot{q}+R^TS(q,\dot{q})R\dot{q}+R^Tg(q)=R^Tu + R^TJ^T(q)u_f$
+    where $R^T u_f$ is the vector of forces/torques
+     expressed in the contact plane frame
+    \item write the control loop for the force control
+\end{enumerate}
+
+
+
+
+
+\section{Visual servoing}
+Visual servoing refers to the
+use information acquired by vision sensors (cameras)
+for feedback control of the pose/motion of a robot.\\
+The first phase is the \textbf{image processing}.
+The \textbf{vision system} provides set-point references to a cartesian 
+motion controller.\\
+Possible visual servoing schemes:
+\begin{itemize}
+    \item \textbf{image-based visual servoing}: the control law
+     is designed directly in the image space - 2D plane.
+      The steps are: \begin{itemize}
+        \item image acquisition 
+        \item feature extraction
+        \item comparison with desired values (error)
+        \item generation of motion of camera/robot
+      \end{itemize}
+    \item \textbf{position-based visual servoing}: the control 
+    law is designed
+    in the robot task space - in 3D pose(cartesian control law)
+\end{itemize}
+\subsection{Camera Model}
+The camera model is given by:
+\begin{itemize}
+\item set of lenses (thin lenses, pinhole, catadioptic lens)
+\item matrix of light-sensitive elements
+\item frame grabber
+\end{itemize}
+\subsubsection{thin lens camera model}
+fundamental equation of a thin lens:
+\begin{equation}
+\frac{1}{Z}+\frac{1}{z}=\frac{1}{\lambda}
+\end{equation}
+where Z is the distance between the object and the lens,
+ z is the distance between the image plane and the lens and
+    $\lambda$ is the focal length of the lens.\\
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.5\textwidth]{lens1.png}
+        \caption{thin lens camera model}
+        \label{fig:thin lens camera model}
+    \end{figure}
+\subsubsection{pinhole camera model}
+the pinhole camera model is given by:
+\begin{equation}
+    u=\lambda \frac{X}{Z}
+\end{equation}
+\begin{equation}
+    v=\lambda \frac{Y}{Z}
+\end{equation}
+with P=(X,Y,Z) the point in the 3D 
+space and (u,v,$\lambda$) the point in the image plane.\\
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\textwidth]{lens2.png}
+    \caption{pinhole camera model}
+    \label{fig:pinhole camera model}
+\end{figure}
+\subsubsection{Interaction matrix}
+given a set of features parameters f =[$f_1,f_2,...,f_n$], we look 
+for the (kinematic) differential relation between
+motion imposed to the camera and motion of features on the
+image plane \begin{equation}
+\dot{f}=J(\cdot)[V, \Omega]^T
+\end{equation}
+where (V,$\Omega$) is a six dimensional linear/angular velocity vector.\\
+J($\cdot$) is the \textbf{interaction matrix}.\\
+To compute the interaction matrix: \begin{enumerate}
+    \item from the perspective equation we obtain:\begin{equation}
+    \begin{bmatrix}
+    \dot{u}\\
+    \dot{v}
+    \end{bmatrix}=
+    \begin{bmatrix}
+    \frac{\lambda}{z} & 0 & -\frac{u}{Z}\\
+    0 & \frac{\lambda}{Z} & -\frac{v}{Z}
+    \end{bmatrix}
+    \begin{bmatrix}
+        \dot{X}\\
+        \dot{Y}\\
+        \dot{Z}
+    \end{bmatrix}
+    =J_1(u,v,\lambda)\begin{bmatrix}
+    \dot{X}\\
+    \dot{Y}\\
+    \dot{Z}
+    \end{bmatrix}
+    \end{equation}
+    \item from kinematic realation instead we can obtain:\begin{equation}
+    \begin{bmatrix}
+    \dot{X}\\
+    \dot{Y}\\
+    \dot{Z}
+    \end{bmatrix}=
+    \begin{bmatrix}
+        -1 & 0 & 0 & 0 & -Z & Y \\
+        0 & -1 & 0 & Z & 0 & -X \\
+        0 & 0 & -1 & -Y & X & 0
+    \end{bmatrix}
+    \begin{bmatrix}
+        V \\
+        \Omega
+    \end{bmatrix}= J_2(X,Y,Z)\begin{bmatrix}
+    V\\
+    \Omega
+    \end{bmatrix}
+    \end{equation}
+    \item thus we obtain the interaction matrix $J_p$ as \begin{equation}
+    \begin{bmatrix}
+        \dot{u}\\\
+        \dot{v}
+    \end{bmatrix}=J_1J_2\begin{bmatrix}
+        V\\
+        \Omega
+    \end{bmatrix}=\begin{bmatrix}
+    -\frac{\lambda}{Z} & 0 & \frac{u}{Z} & \frac{uv}{\lambda} & -(\lambda + \frac{u^2}{\lambda}) & v\\
+    0 & -\frac{\lambda}{Z} & \frac{v}{Z} & \lambda + \frac{v^2}{\lambda} & -\frac{uv}{\lambda} & -u
+    \end{bmatrix} \begin{bmatrix}
+        V\\
+        \Omega
+    \end{bmatrix}=J_p(u,v,Z)\begin{bmatrix}
+    V\\
+    \Omega
+    \end{bmatrix}
+    \end{equation}
+\end{enumerate}
+\textbf{Note:} when requested to obtain the interaction matrix 
+coming from multiple points we have variables $u_i$, $v_i$ and $Z_i$
+for each point i, $\lambda$ is the same for all points.
+\subsubsection{Other interaction matrices}
+Other examples of interaction matrices are:\begin{itemize}
+\item distance between two points in the image plane \begin{equation}
+d=\frac{1}{d}\begin{bmatrix}
+    u_1-u_2 & v_1-v_2 & u_2- u_1 & v_2-v_1 
+\end{bmatrix}\begin{bmatrix}
+    \dot{u}_1 \\
+    \dot{v}_1 \\
+    \dot{u}_2 \\
+    \dot{v}_2
+\end{bmatrix}
+= J_P(u_1,u_2,v_1,v_2) \begin{bmatrix}
+J_{p1}(u_1,v_1,Z_1) \\
+J_{p2}(u_2,v_2,Z_2)
+\end{bmatrix} 
+\begin{bmatrix}
+V\\
+\Omega
+\end{bmatrix}
+\end{equation}
+\item image moments:\begin{equation}
+m_{ij}=\int \int x^i y^j dxdy
+\end{equation}
+\end{itemize}
+\subsection{Robot Differential Kinematics}
+in the \textbf{eye-in-hand} case the motion to be imposed to 
+the camera coincides with the desired end-effector 
+linear/angular velocity.
+\begin{equation}
+\begin{bmatrix}
+    V\\
+    \Omega
+\end{bmatrix}=J_m(q)\dot{q}=J_m(q)u
+\end{equation}
+where $J_m(q)$ is the geometric jacobian or the NMM jacobiam of 
+a manipulator.\\
+We obtain: \begin{equation}
+\dot{f}=J_p(f,Z)J_m(q)u=J(f,Z,q)u
+\end{equation}
+where J(f,Z,q) is the \textbf{Image jacobian}.\\
+In general we can obtain the control (for IBVS) as: \begin{equation}
+u=J^{\#}(\dot{f}_d+ke)+(I-J^{\#}J)u_0
+\end{equation}
+and this will exonentially stabilize the error to 0 (up to singularities).
+\subsubsection{Control With Tak Sequencing}
+approach: regulate only one (some) feature at the time, while keeping
+“fixed” the others by unobservable motions in the image plane.\\
+The steps are the following:
+\begin{enumerate}
+    \item select the feature to be regulated
+    \item compute the control law for the selected feature \begin{equation}
+    u=J^{\#}_1k_1e_1+(I-J^{\#}_1J_1)u_0
+    \end{equation}
+    \item compute the control law for the other features \begin{equation}
+    u=(I-J^{\#}_1J_1)J^T_2k_2e_2
+    \end{equation}
+\end{enumerate}
+
+
+\section{Actuation Faults}
+There are mainly 6 problems in the diagnosis of faults: \begin{itemize}
+\item Fault Detection: the fault is detected
+\item Fault Isolation: discriminate which particular fault f 
+has occurred out of a (large)
+class of potential ones
+\item Fault Identification: the fault is quantified
+\item Fault Accomodation: the control law is modified to take 
+into account the fault
+\item FDI (Fault Detection and Isolation): the fault is detected
+    and isolated simultaneusly 
+\item Fault Tolerant Control: the control law is modified to
+    take into account the fault (passively or actively)
+\end{itemize}
+\subsection{Fault Types }
+\begin{itemize}
+    \item instantaneus 
+    \item incipient
+    \item intermittent
+    \item concurrent 
+\end{itemize}
+the dynamic in case of fault is given by:
+\begin{equation}
+M(q)\ddot{q}+c(q,\dot{q})+g(q)+F_{V}\dot{q}+F_{S}sgn(\dot{q})=u - u_f
+\end{equation}
+where $u_f$ is the fault vector, $F_{V}$ is the viscous friction,
+$F_{S}$ is the static friction.\\
+possible fault expressions:
+\begin{itemize}
+    \item total fault: $u_{f,i}=u_{i}$
+    \item partial fault: $u_{f,i}=\epsilon u_{i}$
+    \item saturation fault: $u_{f,i}=u_{i}-sgn(u_{i})u_{max}$
+    \item bias fault: $u_{f,i}=b_i$
+\end{itemize}
+\textbf{Note}: we assme that the dynamic of the robot is known.
+\subsection{Generalized Momentum}
+The generalized momentum is defined as:
+\begin{equation}
+p=M(q)\dot{q}
+\end{equation}
+and its dynamic is given by:
+\begin{equation}
+\dot{p}=u - \alpha(q,\dot{q}) - u_f
+\end{equation}
+where \begin{equation}\label{eq:alpha}
+\alpha_i(q,\dot{q})=-\frac{1}{2}\dot{q}^T\frac{\partial M}{\partial q_i}\dot{q}+g_i(q)+F_{V,i}\dot{q}_i+F_{S,i}sgn(\dot{q}_i)
+\end{equation}
+
+\subsection{FDI solution}
+definition of the residual vector r as:
+\begin{equation}
+r=K[\int(u-\alpha(q,\dot{q}))dt-p]
+\end{equation}
+where:
+\begin{itemize}
+    \item K is a gain matrix
+    \item $\alpha(q,\dot{q})=-\frac{1}{2}\dot{q}^T\frac{\partial M}{\partial q}\dot{q}+g(q)+F_{V}\dot{q}+F_{S}sgn(\dot{q})$
+    \item p is the generalized momentum $p = M(q)\dot{q}$
+\end{itemize}
+with perfect model knowledge the dynamics of r is: \begin{equation}
+\dot{r}=-Kr + Ku_f
+\end{equation}
+\subsubsection{residual generator}
+the residual generator is a system that generates
+ the residual vector r.
+We have:
+\begin{equation}
+\dot{\hat{p}}=u - \alpha(q,\dot{q}) + K(p- \hat(p))
+\end{equation}
+\begin{equation}
+    r=K(\hat{p}-p)
+\end{equation}
+and $e_{obs}=u_f - r$
+
+\subsubsection{ex: design a residual function $r_i$ for a fault $u_i$}
+The steps are the following:
+\begin{enumerate}
+    \item compute the dynamic of the robot (or system), ex: 
+    $M(q)\ddot{q}+c(q,\dot{q})\dot{q}+g(q)=u - u_f$
+    where each entry $u_i$ of the vector $u_f$ is the fault
+    of the i-th actuator (if present, 0 otherwise)
+    \item write the residual function as: \begin{equation}
+    r_i=K[\int(u_i-\alpha_i(q,\dot{q})-r_i)dt-p_i]
+    \end{equation}
+    \item compute $alpha_i(q,\dot{q})$ as in \ref{eq:alpha}
+    \item compute $p_i$ as: \begin{equation}
+    p=M(q)\dot{q}
+    \end{equation}
+    \item substitute the values in the residual function
+\end{enumerate}
+
+\subsubsection{ex: Give the
+ expressions of the terms appearing in the 
+ definition of the residual vector r 
+that allows detection and isolation of collisions.
+}
+The steps are the following:
+\begin{enumerate}
+    \item write the equation of the a possible 
+    contact force $F_K$ acting on a link as 
+    $r \simeq \tau_K=J_K^TF_K$
+    \item Analyze the situation for each link:\begin{itemize}
+    \item compute the forward kinematics up to the end link k 
+    \item compute the jacobian $J_K$ of the end link k
+    \item find the forces that cannot be detected 
+    as the null space of the jacobian $J_K$
+    \item find the forces that can be detected but 
+    with wrong isolation as the forces that produce 
+    at least one zero in the residual vector
+    \end{itemize}
+\end{enumerate}
+\section{Extra exercises}
+\subsubsection{dynamic scaling of trajectories}
+we want to impose that the same path is executed in a different time:
+\begin{equation}
+  q_d(t) = q_s(r(t))
+\end{equation}
+an $uniform$ scaling occurs when r(t)=kt so:
+\begin{equation}
+    \dot{q}_d(t) = kq'_s(kt)
+\end{equation}
+\begin{equation}
+    \ddot{q}_d(t) = k^2q''_s(kt)
+\end{equation}
+the new torque can be computed as:
+\begin{equation}
+    \tau_s(kt) = M(q_s)q''_s+c(q_s,q_s')+g(q_s) = \frac{1}{k^2}(\tau_d(t)-g(q_d(t)))+g(q_d(t))
+\end{equation}
+    \subsubsection{ex: Find q value that causes algorithmic singularity}
+The steps are the following:
+\begin{enumerate}
+    \item Compute the Jacobian J for each of the tasks
+    \item Build the extended Jacobian as: $J_e = \begin{bmatrix}
+        J_1 \\
+        J_2
+    \end{bmatrix}$
+    \item Compute the determinant of the extended Jacobian
+    \item Find the q value that causes the determinant to be zero
+    \item Substitute the q value in the Jacobians
+    \item Compute the rank of both the original jacobians and the extended one
+    \item If the rank of the extended jacobian i.e. $rank(J_e) <
+     rank(J_1) + rank(J_2)$
+    is less than the sum of the ranks of 
+    the original jacobians, we have an algorithmic singularity.
+\end{enumerate}
+
+\subsubsection{ex: check if two tasks are in conflict}
+The steps are the following:
+\begin{enumerate}
+    \item Compute the Jacobian J for each of the tasks
+    \item Build the extended Jacobian as: $J_e = \begin{bmatrix}
+        J_1 \\
+        J_2
+    \end{bmatrix}$
+    \item Build the extended desired velocity as: $\dot{r}_e = \begin{bmatrix}
+        \dot{r}_1 \\
+        \dot{r}_2
+    \end{bmatrix}$
+    \item if the extended velcity is not in the range of 
+    the extended jacobian, the tasks are in conflict
+\end{enumerate}
+
+\subsubsection{ex: find the minimum time of execution of a trajectory for a single link}
+The steps are the following:
+\begin{enumerate}
+    \item Write down the trajectory with it's first and second derivative (trajectories can be found in \ref{sec:Trajectories})
+    \item Write down the dynamic model of the single link and substitute the values 
+    you just computed \ref{sec:ex: find the dynaic model of a system of masses}
+    \item Split the dynamic model so to obtain $u_a$ for acceleration terms and $u_g$ for gravity terms
+    \item Find the time in which both component have maximum value
+    \item The acceleration component dominates the gravity one, so if there 
+    is a time (range) in which the acceleration component and gravity component
+     reach their maximum value simultaneusly we can compute the minimum ytime just by 
+        computing the time in which the acceleration component reaches its maximum value 
+\end{enumerate}
+
+\subsubsection{ex: find the dynaic model of a system of masses
+spring and dampers} \label{sec:ex: find the dynaic model of a system of masses}
+There are two ways to solve this problem:
+\begin{itemize}
+    \item \textbf{Lagrangian method}: write down the kinetic
+     and potential energy of the system and 
+     write the dynamic model from there
+    \item \textbf{Newton method}: balance the forces and 
+    write the dynamic model
+\end{itemize}
+\textbf{Newton method}:\\
+The steps are the following:
+\begin{enumerate}
+    \item Write an equation for each body of the system
+    \item Include in the equation the following forces:
+    \item \begin{itemize}
+        \item the force of the spring $k_i(x_i-x_{i-1})$
+        \item the force of the damper $d_i(\dot{x}_i-\dot{x}_{i-1})$
+        \item the force of the gravity $m_i g$
+        \item the force of the acceleration $m_i \ddot{x}_i$
+        \item the force of the external input $u_i$
+        \item the force of the friction $f_i \dot{x}_i$
+        \item the force of the contact $c_i$
+    \end{itemize}
+    \item obtain something like: \begin{equation}
+        m_i \ddot{x}_i + k_i(x_i-x_{i-1}) + d_i(\dot{x}_i-\dot{x}_{i-1}) + m_i g + f_i \dot{x}_i + c_i = u_i
+    \end{equation}
+\end{enumerate}
+
+\subsubsection{ex: find the torque $\tau$ that realizes given ojectives}
+The steps are the following:
+\begin{enumerate}
+    \item Write the dynamic model of the robot
+    \item Isolate the torque $\tau$ from the dynamic model
+    \item If asked to minimize the squared norm of 
+    joint accelerations $H=1/2||\ddot{q}||^2$:
+    \begin{itemize}
+    \item find the value of $\ddot{q}$ to substitute 
+    in the dynamic model as: \begin{equation}
+    \ddot{q} = J(q)^{\#}(\ddot{r}_d + \dot{J}(q)\dot{q})+ (I-J(q)^{\#}J(q))\ddot{q}_0
+    \end{equation}
+    \end{itemize}
+    \item If asked to minimize the squared norm of 
+    absolute joint accelerations (joint acelerations but in absolute 
+    coordinates) $H=1/2||\ddot{q_a}||^2$:
+    \begin{itemize}
+        \item find the transformation matrix T such that 
+        $\ddot{q_a}=T\ddot{q}$
+        \item common example in a RRR robot is: \begin{equation}
+        T = \begin{bmatrix}
+            1 & 0 & 0 \\
+            1 & 1 & 0 \\
+            1 & 1 & 1
+        \end{bmatrix}
+        \end{equation}
+        \item compute the wighting matrix W for the pseudoinverse 
+        as $W=T^TT$
+        \item find the value of $\ddot{q_a}$ to substitute 
+        in the dynamic model using the weighted pseudoinverse:
+        \begin{equation}
+            \ddot{q} = J(q)_W^{\#}(\ddot{r}_d + \dot{J}(q)_w\dot{q})+ (I-J(q)^{\#}_wJ(q)_w)\ddot{q}_0
+            \end{equation}
+            
+    \end{itemize}
+    \item If asked to minimize the squared norm of 
+    the inertia weighted 
+    joint accelerations $H=1/2\ddot{q}^TM(q)\ddot{q}$:
+    \begin{itemize}
+        \item use the inertia weighted pseudoinverse
+        \item find the value of $\ddot{q}$ to substitute 
+        in the dynamic model using the inertia weighted pseudoinverse:
+        \begin{equation}
+            \ddot{q} = J(q)_M^{\#}(\ddot{r}_d + \dot{J}(q)_M\dot{q})+ (I-J(q)^{\#}_MJ(q)_M)\ddot{q}_0
+            \end{equation}
+    \end{itemize}
+\end{enumerate}
+\section{APPENDIX}
+\subsection{Pseudo-inverse properties}\label{sec:Pseudo-inverse properties}
+The properties of the pseudo-inverse are:
+\begin{itemize}
+    \item $J J^\# J = J$
+    \item $J^\# J J^\# = J^\#$
+    \item $(J J^\#)^T = J J^\#$
+    \item $(J^\# J)^T = J^\# J$
+\end{itemize}
+\subsection{Weighted pseudo-inverse properties}
+The properties of the weighted pseudo-inverse are:
+\begin{itemize}
+    \item $J J^\# J = J$
+    \item $J^\# J J^\# = J^\#$
+    \item $(J J^\#)^T = J J^\#$
+\end{itemize}
+\subsection{DH frames}
+\subsubsection{Assign axis}
+\begin{itemize}
+    \item $z_i$ along the direction of joint i+1
+    \item $x_i$ along the common normal between $z_{i-1}$ and $z_i$
+    \item $y_i$ completing the right-handed frame
+\end{itemize}
+\subsubsection{DH table}
+\begin{itemize}
+    \item $\alpha_i$ is the angle from $z_{i-1}$ to $z_i$ about $x_i$
+    \item $a_i$ is the distance from $z_{i-1}$ to $z_i$ along $x_i$
+    \item $d_i$ is the distance from $x_{i-1}$ to $x_i$ along $z_{i-1}$
+    \item $\theta_i$ is the angle from $x_{i-1}$ to $x_i$ about $z_{i-1}$
+\end{itemize}
+\subsection{Trajectories} \label{sec:Trajectories}
+\subsubsection{Cubic Polynomial}
+The cubic polynomial is defined as:
+\begin{equation}
+    q(\tau)= a\tau^3+b\tau^2+c\tau+d
+\end{equation}
+We further define the \textbf{doubly normalized polyinomial} as:
+\begin{equation}
+    q_N(\tau)= q_0 + \Delta(q)(a\tau^3+b\tau^2+c\tau+d)
+\end{equation}
+\textbf{Special case} if both initial and final velocity are zero (rest-to-rest) we have:
+\begin{equation}
+    q(\tau)= q_0 + \Delta(q)(-2\tau^3+3\tau^2)
+\end{equation}
+\subsubsection{Quintic Polynomial}
+The quintic polynomial is defined as:
+\begin{equation}
+    q(\tau)= a\tau^5+b\tau^4+c\tau^3+d\tau^2+e\tau+f
+\end{equation}
+We further define the \textbf{doubly normalized polyinomial} as:
+\begin{equation}
+    q_N(\tau)= q_0 + \Delta(q)(a\tau^5+b\tau^4+c\tau^3+d\tau^2+e\tau+f)
+\end{equation}
+\textbf{Special case} if $v_{in}=v_{fin}=0$ and $a_{in}=a_{fin}=0$ (rest-to-rest) we have:
+\begin{equation}
+    q(\tau)=q0 + \Delta(q)(6\tau^5-15\tau^4+10\tau^3)
+\end{equation}
+\subsection{Non-smooth trajectories}
+\subsubsection{Bang-Bang Trajectory}
+The bang-bang trajectory is defined as:
+\begin{equation}
+    q(t) = \begin{cases}
+        \frac{a_{max}t^2}{2} & t \in [0,t_s)\\
+        -\frac{a_{max}(T-t)^2}{2}+v_{max}T -\frac{v^2_{max}}{a_{max}} & t \in [T-t_s,T]
+    \end{cases}
+\end{equation}
+\begin{equation}
+    \dot{q}(t) = \begin{cases}
+        a_{max}t & t \in [0,t_s)\\
+        -a_{max}(T-t_s)+v_{max} & t \in [T-t_s,T]
+    \end{cases}
+\end{equation}
+\begin{equation}
+    \ddot{q}(t) = \begin{cases}
+        a_{max} & t \in [0,t_s)\\
+        -a_{max} & t \in [T-t_s,T]
+    \end{cases}
+\end{equation}
+\subsubsection{ex: finding minimum time}
+To find the minimum time given max velocity and max acceleration we need to find the max
+of all th possible time computation for the bang-bang trajectory.
+\begin{enumerate}
+    \item compute the total distance or length (L or $\Delta(q)$) fro each joint
+    \item Compute the possible values of time (for each joint) as:
+            $T_{min} = \sqrt{\frac{4L}{a_{max}}}$
+    \item note: we can do that if we have initial and final velocity equal to zero
+    \item (we obtain that from $v^2=v^2_0+2a\Delta(q)$)
+    \item find the maximum value of the possible values of time
+\end{enumerate}
+\subsubsection{Bang-Coast-Bang Trajectory}
+The bang-coast-bang trajectory is defined as:
+\begin{equation}
+        q(t) = \begin{cases}
+            \frac{a_{max}t^2}{2} & t \in [0,t_s)\\
+            v_{max}t - \frac{v^2_{max}}{2a_{max}} & t \in [t_s,T-t_s)\\
+            -\frac{a_{max}(T-t_s)^2}{2}+v_{max}T -\frac{v^2_{max}}{a_{max}} & t \in [T-t_s,T]
+        \end{cases}
+    \end{equation}
+    \begin{equation}
+        \dot{q}(t) = \begin{cases}
+            a_{max}t & t \in [0,t_s)\\
+            v_{max} & t \in [t_s,T-t_s)\\
+            -a_{max}(T-t_s)+v_{max} & t \in [T-t_s,T]
+        \end{cases}
+    \end{equation}
+    \begin{equation}
+        \ddot{q}(t) = \begin{cases}
+            a_{max} & t \in [0,t_s)\\
+            0 & t \in [t_s,T-t_s)\\
+            -a_{max} & t \in [T-t_s,T]
+        \end{cases}
+\end{equation}
+\subsubsection{ex: finding $t_s$ and $t_c$}
+To find the values of $t_s$ and $t_c$ we need to impose the following constraints:
+\begin{equation}
+t_s = \frac{v_{max}}{a_{max}} 
+\end{equation}
+\begin{equation}
+    t_c = \frac{La_{max} + v^2_{max}}{a_{max}v_{max}} - 2*t_s
+    \end{equation}
+ The final time is given by $t_f = t_c + 2t_s$
+
+\subsubsection{ex: finding minimum time}
+To find the minimum time given max velocity and max acceleration we need to find the max 
+of all th possible time computation for the bang-coast-bang trajectory.
+\begin{enumerate}
+    \item compute the total distance or length (L or $\Delta(q)$) fro each joint
+    \item Compute the possible values of time (for each joint) as: \begin{itemize}
+        \item $
+            T_{min} = \frac{La_{max}+v^2_{max}}{a_{max}v_{max}}$
+        \item $
+            T_{min} = \frac{L}{v_{max}}$
+    \end{itemize}
+    \item find the maximum value of the possible values of time
+\end{enumerate}
+\subsection{Energy}
+\subsubsection{Kinetic energy}
+The kinetic energy of a spring is given by:
+\begin{equation}
+    T = \frac{1}{2} (x_1-x_2)^T K (x_1-x_2)
+\end{equation}
+The kinetic energy of a body accelerated by an acceleration $\ddot{q}$
+is given by:
+\begin{equation}
+    T = \frac{1}{2} \dot{q}^T M \dot{q}
+\end{equation}
+\textbf{Note:} when adding thos eterm in 
+the Lyapunov function we need to consider the
+eventual control virtual springs Kp and Kd.
+
+\subsubsection{Potential energy}
+The potential energy is given by gravity
+
+\subsection{Laplace stability}
+\begin{itemize}
+    \item the system is stable if all the poles of the 
+    transfer function have negative real part i.e. the poles lie in the 
+    left half plane
+\end{itemize}
+\subsubsection{transfer function}
+The transfer function is defined as:
+\begin{equation}
+    G(s) = \frac{Y(s)}{U(s)}
+\end{equation}
+where Y(s) is the output and U(s) is the input
+\subsubsection{poles}
+The poles of the transfer function are the values of s 
+that make the denominator of the transfer function equal to zero
+\
+\subsection{Routh Hurwitz criterion}
+The Routh Hurwitz criterion is a necessary and sufficient
+ condition for the stability of a system.\\
+    The criterion is based on the coefficients of the characteristic
+        polynomial of the system.\\
+        The criterion states that a system is stable if and only if all the 
+        coefficients of the characteristic polynomial are positive.\\
+        The criterion is based on the construction of a table called the 
+        Routh table.\\
+        The Routh table has n+1 (where n is the maximum power) 
+        rows and is constructed as follows:
+        \begin{itemize}
+            \item the first row of the table is the coefficients of the 
+            characteristic polynomial (of the even powers)
+            \item the second row is the coefficients of the characteristic
+            polynomial (of the odd powers)
+            \item the other rows are computed as follows:
+            \begin{itemize}
+                \item the first element of the row is computed as:
+                \begin{equation}
+                    a_{i,1} = -\frac{det\begin{bmatrix}
+                        a_{i-2,1} & a_{i-2,2}\\
+                        a_{i-1,1} & a_{i-1,2}
+                    \end{bmatrix}}{a_{i-1,1}}
+                \end{equation}
+                \item the other elements of the row are computed as:
+                \begin{equation}
+                    a_{i,j} = -\frac{det\begin{bmatrix}
+                        a_{i-2,j-1} & a_{i-2,j}\\
+                        a_{i-1,j-1} & a_{i-1,j}
+                    \end{bmatrix}}{a_{i-1,1}}
+                \end{equation}
+            \end{itemize}
+        \end{itemize}
+        The system is stable if and only if all the elements
+         of the first column
+        of the Routh table are positive.
+\section{GLOSSARY}
+\begin{itemize}
+\item \textbf{self-motion}:  motion of a robot that does 
+not change the position of the end-effector
+\label{glossary:self-motion}
+\item \textbf{nominal conditiom}: the nominal condition is the condition 
+in which the robot is supposed to be in.
+\label{glossary:nominal condition}
+\end{itemize}
+
+\end{document}
