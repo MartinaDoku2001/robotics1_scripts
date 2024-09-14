@@ -1,4 +1,4 @@
-function [w, v, vc, T] = moving_frames_algorithm(num_joints, DH, qdots, m, r, rc, prismatic_indices,I)
+function [w, v, vc, T] = moving_frames_algorithm(num_joints, DH, qdots, m,  rc, prismatic_indices,I)
     % This function performs the moving frame algorithm and returns the
     % vectors w, v, vc, and the values of T for each joint
     %
@@ -11,8 +11,6 @@ function [w, v, vc, T] = moving_frames_algorithm(num_joints, DH, qdots, m, r, rc
     %
     % m = a vector of masses [m1 ; ... ; mn]
     %
-    % r = a vector containing the values ^ir_{i-1,i} that is the distance
-    % between frame i-1 and i computed with respect to frame i 
     %
     % rc = a vector containing the values ^ir_{ci} that is the distance
     % between the i-th CoM from the i-th reference frame
@@ -33,11 +31,6 @@ function [w, v, vc, T] = moving_frames_algorithm(num_joints, DH, qdots, m, r, rc
         error('Number of rows in DH matrix should be equal to the number of joints.');
     end
 
-    % Check that the r is consistent with the number of joints 
-    if size(r,2) ~= num_joints
-        size(r,2)
-        error('Length of r vector should be equal to the number of joints.');
-    end
 
     % Check that rc is consistent with the number of joints 
     if size(rc,2) ~= num_joints
@@ -71,7 +64,9 @@ function [w, v, vc, T] = moving_frames_algorithm(num_joints, DH, qdots, m, r, rc
         end
         A=DHMatrix(DH(i,:));
         R=A(1:3,1:3)
+        p=A(1:3,4)
 
+        r_i=R'*p
         % computing omega
         if i ==1
             w_prev= w00;
@@ -90,7 +85,7 @@ function [w, v, vc, T] = moving_frames_algorithm(num_joints, DH, qdots, m, r, rc
             v_prev= vi;
         end 
         
-        vi=R'*(v_prev + sigma*[0;0;qdots(i)])+ cross(wi,r(:,i),1);
+        vi=R'*(v_prev + sigma*[0;0;qdots(i)])+ cross(wi,r_i,1);
         fprintf('The value of v_%d is:', i);
         disp(vi)
 
