@@ -1043,8 +1043,8 @@ The steps are the following:
             \item if $m_i$ is in function of q, it becomes $\frac{1}{2}\dot{q}^T\dot{m_i}\dot{q}+\dot{q}^Tm_i\ddot{q}$
             \item else it becomes $\dot{q}^Tm_i\ddot{q}$
         \end{itemize}
-        \item For each spring, the term becomes $\dot{e}^Tk_i\dot{e}$
-        \item For each virtual spring, the term becomes $-\dot{q}^TK_{p,i}\dot{e}$
+        \item For each spring, the term becomes $\dot{e}^Tk_ie$
+        \item For each virtual spring, the term becomes $-\dot{q}^TK_{p,i}e$
         \item For each gravitational term, the term becomes $-m_i g \dot{q}$
     \end{itemize}
     \item \textbf{Note}: the $e$ in springs and virtul springs is usually different (in virtual spring
@@ -2155,7 +2155,7 @@ The steps are the following:
     \item Compute the rotation matrix $R$ from origin frame to contact plane frame 
     \item Rewrite the dynamic model in the contact plane frame
     by multiplying the elements of the model by $R$, such that:
-    $R^TM(q)R\ddot{q}+R^TS(q,\dot{q})R\dot{q}+R^Tg(q)=R^Tu + R^TJ^T(q)u_f$
+    $R^TM(q)R\ddot{q}+R^TS(q,\dot{q}) R\dot{q}+R^Tg(q)=R^Tu + R^TJ^T(q)u_f$
     where $R^T u_f$ is the vector of forces/torques expressed in the contact plane frame
     \item Write the control loop for the force control
 \end{enumerate}
@@ -2630,17 +2630,17 @@ The steps are the following:
  the inequalities defined in previous step
  \item Express $\ddot{q}$ bound as 
  \begin{equation}
-    \max(-U_1/a, -U_2/b) = \ddot{q-} \leq \ddot{q} \leq \ddot{q+} = \min(U_1/a, U_2/b)
+    \max(-U_1/a, -U_2/b) = \ddot{q}^{-} \leq \ddot{q} \leq \ddot{q}^{+} = \min(U_1/a, U_2/b)
  \end{equation}
- \item Check that the expressed conditions about $\ddot{q+}$ and $\ddot{q-}$
+ \item Check that the expressed conditions about $\ddot{q}^{+}$ and $\ddot{q}^{-}$
   are able to perform any desired motion transfer (e.g. rest-to-rest motion)
  \item In case a rest-to-rest motion needs to be
   enforced, impose equations from moto uniformemente 
   acceleration and find values of T and Ts
  \item For rest-to-rest motion end to be enforced, 
- we set $\ddot{q-}*Ts + \ddot{q+} *(T-Ts) = 0$
+ we set $\ddot{q}^{-}*Ts + \ddot{q}^{+} *(T-Ts) = 0$
  \item For net displacement to be 
- achieved, $1/2*\ddot{q}-*(Ts)^2 - 1/2*\ddot{q}+*(T-Ts)^2 = displacement$
+ achieved, $1/2*\ddot{q}^{-}*(Ts)^2 - 1/2*\ddot{q}^{+}*(T-Ts)^2 = displacement$
  \item Find the values of T and Ts
 \end{enumerate}
 
