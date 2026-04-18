@@ -1,6 +1,6 @@
 function [time, position, velocity, acceleration] = restToRestMotion(totalTime, accelerationValue, speedValue, accelerationTime)
-    % This function simulates the motion profile of a robot going from
-    % Rest-to-Rest
+    % This function simulates the motion profile of a robot going from Rest-to-Rest
+    % with improved visualization.
 
     % Parameters:
     % - totalTime: Total time of the motion profile.
@@ -8,11 +8,6 @@ function [time, position, velocity, acceleration] = restToRestMotion(totalTime, 
     % - speedValue: Constant speed during the coast phase.
     % - accelerationTime: Time duration of the acceleration phase.
 
-    % Outputs:
-    %  1. Plot of position wrt time
-    %  2. Plot of speed wrt time
-    %  3. Plot of acceleration wrt time
-    
     % Calculate coast time
     coastTime = totalTime - 2 * accelerationTime;
 
@@ -34,30 +29,48 @@ function [time, position, velocity, acceleration] = restToRestMotion(totalTime, 
     v3 = cumtrapz(t3, a3) + v2(end);
     velocity = [v1, v2, v3];
 
-    % Position profile (updated integration)
+    % Position profile
     x1 = cumtrapz(t1, v1);
     x2 = cumtrapz(t2, v2) + x1(end);
     x3 = cumtrapz(t3, v3) + x2(end);
     position = [x1, x2, x3];
 
-    % Plotting the profiles
-    figure;
+    % Create a larger figure
+    figure('Position', [100, 100, 1000, 700]); 
+
+    % Position Plot
     subplot(3, 1, 1);
-    plot(time, position, 'b.-');
-    title('Position vs Time');
-    xlabel('Time (s)');
-    ylabel('Position');
-
+    plot(time, position, 'b-', 'LineWidth', 2); hold on;
+    scatter([time(1), time(end)], [position(1), position(end)], 100, 'r', 'filled'); % Highlight start & end points
+    title('Position vs Time', 'FontSize', 14, 'FontWeight', 'bold');
+    xlabel('Time (s)', 'FontSize', 12);
+    ylabel('Position (m)', 'FontSize', 12);
+    grid on;
+    legend('Position', 'Start/End', 'Location', 'best');
+    
+    % Velocity Plot
     subplot(3, 1, 2);
-    plot(time, velocity, 'g.-');
-    title('Velocity vs Time');
-    xlabel('Time (s)');
-    ylabel('Velocity');
+    plot(time, velocity, 'g-', 'LineWidth', 2); hold on;
+    scatter(time(velocity == max(velocity)), max(velocity), 100, 'k', 'filled'); % Highlight max velocity
+    title('Velocity vs Time', 'FontSize', 14, 'FontWeight', 'bold');
+    xlabel('Time (s)', 'FontSize', 12);
+    ylabel('Velocity (m/s)', 'FontSize', 12);
+    grid on;
+    legend('Velocity', 'Max Velocity', 'Location', 'best');
 
+    % Acceleration Plot
     subplot(3, 1, 3);
-    plot(time, acceleration, 'r.-');
-    title('Acceleration vs Time');
-    xlabel('Time (s)');
-    ylabel('Acceleration');
+    plot(time, acceleration, 'r-', 'LineWidth', 2); hold on;
+    scatter(time(acceleration == max(acceleration)), max(acceleration), 100, 'b', 'filled'); % Highlight max accel
+    scatter(time(acceleration == min(acceleration)), min(acceleration), 100, 'k', 'filled'); % Highlight min accel
+    title('Acceleration vs Time', 'FontSize', 14, 'FontWeight', 'bold');
+    xlabel('Time (s)', 'FontSize', 12);
+    ylabel('Acceleration (m/s²)', 'FontSize', 12);
+    grid on;
+    legend('Acceleration', 'Max Accel', 'Min Accel', 'Location', 'best');
+
+    % Enhance figure appearance
+    sgtitle('Rest-to-Rest Motion Profile', 'FontSize', 16, 'FontWeight', 'bold');
 end
+
 

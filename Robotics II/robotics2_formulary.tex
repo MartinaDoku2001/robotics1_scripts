@@ -62,7 +62,7 @@ The error measure is the difference between the true value $r$ and the
   \Delta r = r - r_{nom} = \frac{\partial f}{\partial \alpha} \Delta \alpha + \frac{\partial f}{\partial a} \Delta a + \frac{\partial f}{\partial d} \Delta d + \frac{\partial f}{\partial \theta} \Delta \theta
 \end{equation}
 where $\frac{\partial f}{\partial \alpha}$, $\frac{\partial f}{\partial a}$, $\frac{\partial f}{\partial d}$, $\frac{\partial f}{\partial \theta}$ are the partial 
-jacobians evaluated in nominal conditions
+jacobians (f is the forward kinematic) evaluated in nominal conditions
 \subsection{Calibration Equation}
 The calibration equation is given by:
 \begin{equation}
@@ -108,12 +108,12 @@ Then, for each component (a, $\alpha$, d, $\theta$) that we are interested in, w
 build the jacobian $ \frac{\partial f}{\partial \alpha} $... .
 The regressor equation is then given by:
 \begin{equation}
-    \Delta p = J_a \Delta a + J_{\alpha} \Delta \alpha + J_d \Delta d + J_{\theta} \Delta \theta= \Phi \Delta \phi
+    \Delta p = \frac{\partial f}{\partial a} \Delta a + \frac{\partial f}{\partial \alpha} \Delta \alpha + \frac{\partial f}{\partial d}\Delta d + \frac{\partial f}{\partial \theta} \Delta \theta= \Phi \Delta \phi
 \end{equation}
 with:
 \begin{equation}
     \Phi = \begin{bmatrix}
-        J_a & J_{\alpha} & J_d & J_{\theta}
+        \frac{\partial f}{\partial a} & \frac{\partial f}{\partial \alpha} & \frac{\partial f}{\partial d}& \frac{\partial f}{\partial \theta}
     \end{bmatrix}
 \end{equation}
 \textbf{Note:} if we are interested ony in the fine tuning of some parameters, we can
