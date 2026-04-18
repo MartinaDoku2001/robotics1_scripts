@@ -27,7 +27,11 @@
     \vspace{1cm}
     \includegraphics[width=0.4\textwidth]{logo.png}
 }
+<<<<<<< Updated upstream
 \author{Martina Doku \and Giuseppina Iannotti \and Gianmarco Scarano}
+=======
+\author{Martina Doku}
+>>>>>>> Stashed changes
 
 % Formattazione dei titoli delle sezioni
 \titleformat{\section}{\Large\bfseries}{\thesection}{1em}{}
@@ -1025,6 +1029,7 @@ Examples of Lyapunov candidates are:
 \subsubsection{ex: Write the Lyapunov candidate given a dynamic model and a control law}
 The steps are the following:
 \begin{enumerate}
+<<<<<<< Updated upstream
     \item Given the dynamic models of the system we want 
     to build the Lyapunov candidate $V$ by adding all the terms in the 
     system as follows:
@@ -1056,6 +1061,31 @@ The steps are the following:
     We usually proceed in the simplifications by substituting $m_i \ddot{q}$ with
      the value from the control loop
      
+=======
+    \item Given the dynamic models of the system, we want 
+    to first substitute the control law in them if possible
+    \item Then we create the Lyapunov candidate by summing 
+    the kinetic and potential energy of the system 
+    (from all the systems dynamic equation), plus a virtual potential energy
+    $K_P$ introduced by the control, if any 
+    \item Then we compute the derivative of V as:\\
+    For example, for a basic PD control V(x) is:
+    \begin{equation}
+        V=1/2*\dot{q}M(q)\dot{q}+1/2*e^TK_Pe
+    \end{equation}
+    then $\dot{v}(x)$ is:
+    \begin{equation}
+    \begin{split}
+        \dot{V} & = \dot{q}^TM(q)\ddot{q}+ 1/2 \dot{q}^T\dot{M}(q)\dot{q} - e^TK_P\dot{q}\\
+        & = \dot{q}^T(1/2\dot{M}(q)\dot{q}+u-S(q,\dot{q})\dot{q}) - e^TK_P\dot{q}\\
+        & = -\dot{q}^TK_D\dot{q} \leq 0
+    \end{split}
+    \end{equation}
+    Note: When proving $\dot{v} \leq 0$ you can use the following property:
+    \begin{equation}
+        \dot{q}^T(\dot{M}(q)-2S(q,\dot{q}))\dot{q}=0
+    \end{equation}
+>>>>>>> Stashed changes
 \end{enumerate}
     \subsubsection{Lyapunov stability}
 Lyapunov stability of $x_e$ is defined as:\newline
@@ -1128,8 +1158,13 @@ The steps are the following:
     \item Prove that the equilibrium is the only one by applying
      LaSalle's theorem \ref{sec:LaSalle Theorem} (check that 
      $\dot{V}(x) = 0$ only at the equilibrium)
+<<<<<<< Updated upstream
     \item Impose $\ddot{x}=0$ and prove that this happens only for 
     $x=x_d$
+=======
+    \item If the system is not asymptotically stable, find the
+    largest invariant set
+>>>>>>> Stashed changes
 \end{enumerate}
 \textbf{Linearization}:\\
 The steps are the following:
@@ -2155,7 +2190,11 @@ The steps are the following:
     \item Compute the rotation matrix $R$ from origin frame to contact plane frame 
     \item Rewrite the dynamic model in the contact plane frame
     by multiplying the elements of the model by $R$, such that:
+<<<<<<< Updated upstream
     $R^TM(q)R\ddot{q}+R^TS(q,\dot{q}) R\dot{q}+R^Tg(q)=R^Tu + R^TJ^T(q)u_f$
+=======
+    $R^TM(q)R\ddot{q}+R^TS(q,\dot{q})R\dot{q}+R^Tg(q)=R^Tu + R^TJ^T(q)u_f$
+>>>>>>> Stashed changes
     where $R^T u_f$ is the vector of forces/torques expressed in the contact plane frame
     \item Write the control loop for the force control
 \end{enumerate}
@@ -2556,6 +2595,7 @@ In this case, only the second contact point (2) is in a collision state, as the 
 
 
 \section{Extra exercises}
+<<<<<<< Updated upstream
 \subsubsection{ex: Uniform time scaling}
 If the motion is unfeasible and we need to apply uniform time scaling, 
 the steps are the following:
@@ -2564,6 +2604,24 @@ the steps are the following:
     \item Compute the new scaled time $t_i' = K_i t_i$
     \item Compute the new scaled torques $\tau_i(t_i') = \frac{\tau_i(t_i) - g_i(q(t_i))}{K_i^2} + g_i(q(t_i))$
 \end{enumerate}
+=======
+\subsubsection{Dynamic scaling of trajectories}
+We want to impose that the same path is executed in a different time:
+\begin{equation}
+  q_d(t) = q_s(r(t))
+\end{equation}
+an \textit{uniform scaling} occurs when $r(t)=kt$ so:
+\begin{equation}
+    \dot{q}_d(t) = kq'_s(kt)
+\end{equation}
+\begin{equation}
+    \ddot{q}_d(t) = k^2q''_s(kt)
+\end{equation}
+The new torque can be computed as:
+\begin{equation}
+    \tau_s(kt) = M(q_s)q''_s+c(q_s,q_s')+g(q_s) = \frac{1}{k^2}(\tau_d(t)-g(q_d(t)))+g(q_d(t))
+\end{equation}
+>>>>>>> Stashed changes
     \subsubsection{ex: Find q value that causes algorithmic singularity}
 The steps are the following:
 \begin{enumerate}
@@ -2600,6 +2658,7 @@ The steps are the following:
 \subsubsection{ex: Find the minimum time of execution of a trajectory for a single link}
 The steps are the following:
 \begin{enumerate}
+<<<<<<< Updated upstream
     \item Write the expression of the dynamic model 
     \item If we can identify the tkind of motion
      (e.g. bang-to-bang, bang-coast-bang,
@@ -2646,6 +2705,19 @@ The steps are the following:
 
 \end{enumerate}
 
+=======
+    \item Write down the trajectory with its first and second derivative (trajectories can be found in \ref{sec:Trajectories})
+    \item Write down the dynamic model of the single link and substitute the values 
+    you just computed \ref{sec:ex: find the dynaic model of a system of masses}
+    \item Split the dynamic model so to obtain $u_a$ for acceleration terms and $u_g$ for gravity terms
+    \item Find the time in which both component have maximum value
+    \item The acceleration component dominates the gravity one, so if there 
+    is a time (range) in which the acceleration component and gravity component
+    reach their maximum value simultaneusly, we can compute the minimum time just by 
+    computing the time in which the acceleration component reaches its maximum value. 
+\end{enumerate}
+
+>>>>>>> Stashed changes
 \subsubsection{ex: Find the dynamic model of a system of masses
 spring and dampers} \label{sec:ex: find the dynaic model of a system of masses}
 There are two ways to solve this problem:
